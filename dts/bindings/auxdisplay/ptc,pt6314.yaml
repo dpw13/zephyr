@@ -10,6 +10,7 @@ include: [auxdisplay-device.yaml, spi-device.yaml]
 properties:
   columns:
     enum:
+      - 10
       - 16
       - 20
       - 24
@@ -18,3 +19,4 @@ properties:
     enum:
       - 1
       - 2
+      - 4
