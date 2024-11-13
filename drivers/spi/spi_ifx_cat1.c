@@ -344,7 +344,7 @@ static int ifx_cat1_spi_init(const struct device *dev)
 		},                                                                                 \
 		.irq_priority = DT_INST_IRQ(n, priority),                                          \
 	};                                                                                         \
-	DEVICE_DT_INST_DEFINE(n, ifx_cat1_spi_init, NULL, &spi_cat1_data_##n,                      \
+	SPI_DEVICE_DT_INST_DEFINE(n, ifx_cat1_spi_init, NULL, &spi_cat1_data_##n,                      \
 			      &spi_cat1_config_##n, POST_KERNEL,                                   \
 			      CONFIG_KERNEL_INIT_PRIORITY_DEVICE, &ifx_cat1_spi_api);
 

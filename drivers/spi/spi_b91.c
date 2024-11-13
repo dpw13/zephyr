@@ -483,7 +483,7 @@ static const struct spi_driver_api spi_b91_api = {
 		.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(inst),		  \
 	};								  \
 									  \
-	DEVICE_DT_INST_DEFINE(inst, spi_b91_init,			  \
+	SPI_DEVICE_DT_INST_DEFINE(inst, spi_b91_init,			  \
 			      NULL,					  \
 			      &spi_b91_data_##inst,			  \
 			      &spi_b91_cfg_##inst,			  \
