@@ -236,7 +236,7 @@ static struct spi_driver_api api = {
 		SPI_CONTEXT_INIT_LOCK(data_##n, ctx),                   \
 		SPI_CONTEXT_INIT_SYNC(data_##n, ctx),                   \
 	};                                                              \
-	DEVICE_DT_INST_DEFINE(n,                                        \
+	SPI_DEVICE_DT_INST_DEFINE(n,                                        \
 			init,                                           \
 			NULL,                                           \
 			&data_##n,                                      \
