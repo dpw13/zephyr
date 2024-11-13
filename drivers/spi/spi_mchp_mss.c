@@ -477,7 +477,7 @@ static const struct spi_driver_api mss_spi_driver_api = {
 		SPI_CONTEXT_INIT_SYNC(mss_spi_data_##n, ctx),                                      \
 	};                                                                                         \
                                                                                                    \
-	DEVICE_DT_INST_DEFINE(n, mss_spi_init_##n, NULL, &mss_spi_data_##n, &mss_spi_config_##n,   \
+	SPI_DEVICE_DT_INST_DEFINE(n, mss_spi_init_##n, NULL, &mss_spi_data_##n, &mss_spi_config_##n,   \
 			      POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEVICE,                     \
 			      &mss_spi_driver_api);
 
