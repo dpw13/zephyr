@@ -106,6 +106,11 @@ struct adc_channel_cfg {
 	uint16_t acquisition_time;
 
 	/**
+	 * Conversion trigger source.
+	 */
+	uint16_t trig_src;
+
+	/**
 	 * Channel identifier.
 	 * This value primarily identifies the channel within the ADC API - when
 	 * a read request is done, the corresponding bit in the "channels" field
@@ -240,6 +245,7 @@ struct adc_channel_cfg {
 	.gain             = DT_STRING_TOKEN(node_id, zephyr_gain), \
 	.reference        = DT_STRING_TOKEN(node_id, zephyr_reference), \
 	.acquisition_time = DT_PROP(node_id, zephyr_acquisition_time), \
+	.trig_src         = DT_PROP(node_id, zephyr_trig_src), \
 	.channel_id       = DT_REG_ADDR(node_id), \
 IF_ENABLED(UTIL_OR(DT_PROP(node_id, zephyr_differential), \
 		   UTIL_AND(CONFIG_ADC_CONFIGURABLE_INPUTS, \
@@ -600,6 +606,9 @@ struct adc_sequence_options {
 	 * is 1 + extra_samplings).
 	 */
 	uint16_t extra_samplings;
+
+	uint16_t block_size;
+	bool continuous;
 };
 
 /**
