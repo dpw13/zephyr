@@ -260,8 +260,7 @@ static inline void adc_context_on_sampling_done(struct adc_context *ctx,
 			finish = true;
 			break;
 		default: /* ADC_ACTION_CONTINUE */
-			if (ctx->sampling_index <
-			    ctx->options.extra_samplings) {
+			if (ctx->sampling_index < ctx->options.extra_samplings || ctx->options.continuous) {
 				++ctx->sampling_index;
 			} else {
 				finish = true;
@@ -276,10 +275,13 @@ static inline void adc_context_on_sampling_done(struct adc_context *ctx,
 			 * a zero interval or if the timer expired again while
 			 * the current sampling was in progress.
 			 */
-			if (ctx->options.interval_us == 0U) {
-				adc_context_start_sampling(ctx);
-			} else if (atomic_dec(&ctx->sampling_requested) > 1) {
-				adc_context_start_sampling(ctx);
+			if (!ctx->options.continuous) {
+				/* In continuous mode the ADC does not need to be restarted */
+				if (ctx->options.interval_us == 0U) {
+					adc_context_start_sampling(ctx);
+				} else if (atomic_dec(&ctx->sampling_requested) > 1) {
+					adc_context_start_sampling(ctx);
+				}
 			}
 
 			return;
