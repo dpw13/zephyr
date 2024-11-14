@@ -247,8 +247,10 @@ struct adc_stm32_data {
 	uint8_t resolution;
 	uint32_t channels;
 	uint8_t channel_count;
-	uint8_t samples_count;
+	uint16_t sample_count;
+	uint16_t current_sample;
 	int8_t acq_time_index[2];
+	bool continuous;
 
 #ifdef CONFIG_ADC_STM32_INJECTED_CHANNELS
 	struct adc_context inj_ctx;
@@ -301,7 +303,7 @@ struct adc_stm32_cfg {
 };
 
 #ifdef CONFIG_ADC_STM32_DMA
-static void adc_stm32_enable_dma_support(ADC_TypeDef *adc)
+static void adc_stm32_enable_dma_support(ADC_TypeDef *adc, bool continuous)
 {
 	/* Allow ADC to create DMA request and set to one-shot mode as implemented in HAL drivers */
 #if DT_HAS_COMPAT_STATUS_OKAY(st_stm32f1_adc)
@@ -322,12 +324,16 @@ static void adc_stm32_enable_dma_support(ADC_TypeDef *adc)
 	LL_ADC_REG_SetDataTransferMode(adc, LL_ADC_REG_DMA_TRANSFER_LIMITED);
 #else
 	/* Default mechanism for other MCUs */
-	LL_ADC_REG_SetDMATransfer(adc, LL_ADC_REG_DMA_TRANSFER_LIMITED);
+	if (continuous) {
+		LL_ADC_REG_SetDataTransferMode(adc, LL_ADC_REG_DMA_TRANSFER_UNLIMITED);
+	} else {
+		LL_ADC_REG_SetDataTransferMode(adc, LL_ADC_REG_DMA_TRANSFER_LIMITED);
+	}
 #endif
 }
 
 static int adc_stm32_dma_start(const struct device *dev,
-			       void *buffer, size_t channel_count)
+			       void *buffer, size_t sample_count, bool continuous)
 {
 	const struct adc_stm32_cfg *config = dev->config;
 	ADC_TypeDef *adc = config->base;
@@ -340,25 +346,31 @@ static int adc_stm32_dma_start(const struct device *dev,
 	blk_cfg = &dma->dma_blk_cfg;
 
 	/* prepare the block */
-	blk_cfg->block_size = channel_count * sizeof(adc_data_size_t);
+	blk_cfg->block_size = sample_count * sizeof(adc_data_size_t);
 
 	/* Source and destination */
 	blk_cfg->source_address = (uint32_t)LL_ADC_DMA_GetRegAddr(adc, LL_ADC_DMA_REG_REGULAR_DATA);
 	blk_cfg->source_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
-	blk_cfg->source_reload_en = 0;
+	blk_cfg->source_reload_en = 1;
 
 	blk_cfg->dest_address = (uint32_t)buffer;
 	blk_cfg->dest_addr_adj = DMA_ADDR_ADJ_INCREMENT;
-	blk_cfg->dest_reload_en = 0;
+	blk_cfg->dest_reload_en = 1;
 
 	/* Manually set the FIFO threshold to 1/4 because the
 	 * dmamux DTS entry does not contain fifo threshold
 	 */
 	blk_cfg->fifo_mode_control = 0;
 
+	blk_cfg->next_block = NULL;
+
 	/* direction is given by the DT */
+	dma->dma_cfg.block_count = 1;
+	dma->dma_cfg.complete_callback_en = 1; /* Callback at each block */
+
 	dma->dma_cfg.head_block = blk_cfg;
 	dma->dma_cfg.user_data = data;
+	dma->dma_cfg.cyclic = continuous;
 
 	ret = dma_config(data->dma.dma_dev, data->dma.channel,
 			 &dma->dma_cfg);
@@ -367,8 +379,6 @@ static int adc_stm32_dma_start(const struct device *dev,
 		return ret;
 	}
 
-	adc_stm32_enable_dma_support(adc);
-
 	data->dma_error = 0;
 	ret = dma_start(data->dma.dma_dev, data->dma.channel);
 	if (ret != 0) {
@@ -376,14 +386,14 @@ static int adc_stm32_dma_start(const struct device *dev,
 		return ret;
 	}
 
-	LOG_DBG("DMA started");
+	LOG_DBG("DMA started: %d B to %p", blk_cfg->block_size, (void *)blk_cfg->dest_address);
 
 	return ret;
 }
 #endif /* CONFIG_ADC_STM32_DMA */
 
 static int check_buffer(const struct adc_sequence *sequence,
-			     uint8_t active_channels)
+			     uint16_t sample_count)
 {
 	size_t needed_buffer_size;
 
@@ -922,7 +932,7 @@ static void dma_callback(const struct device *dev, void *user_data,
 	ADC_TypeDef *adc = config->base;
 #endif /* !DT_HAS_COMPAT_STATUS_OKAY(st_stm32f1_adc) */
 
-	LOG_DBG("dma callback");
+	//LOG_DBG("dma callback");
 
 	if (channel == data->dma.channel) {
 #if !DT_HAS_COMPAT_STATUS_OKAY(st_stm32f1_adc)
@@ -933,23 +943,39 @@ static void dma_callback(const struct device *dev, void *user_data,
 		}
 #endif /* !DT_HAS_COMPAT_STATUS_OKAY(st_stm32f1_adc) */
 		if (status >= 0) {
-			data->samples_count = data->channel_count;
-			data->buffer += data->channel_count;
-			/* Stop the DMA engine, only to start it again when the callback returns
-			 * ADC_ACTION_REPEAT or ADC_ACTION_CONTINUE, or the number of samples
-			 * haven't been reached Starting the DMA engine is done
-			 * within adc_context_start_sampling
-			 */
-			dma_stop(data->dma.dma_dev, data->dma.channel);
-			/* No need to invalidate the cache because it's assumed that
-			 * the address is in a non-cacheable SRAM region.
-			 */
-			adc_context_on_sampling_done(&data->ctx, dev);
-			pm_policy_state_lock_put(PM_STATE_SUSPEND_TO_IDLE,
-						 PM_ALL_SUBSTATES);
-			if (IS_ENABLED(CONFIG_PM_S2RAM)) {
-				pm_policy_state_lock_put(PM_STATE_SUSPEND_TO_RAM,
-							 PM_ALL_SUBSTATES);
+			if (data->continuous) {
+				/* Half buffer complete in cyclic mode */
+				data->current_sample += data->sample_count/2;
+				data->buffer += data->sample_count/2;
+			} else {
+				/* Full buffer complete */
+				data->current_sample += data->sample_count;
+				data->buffer += data->sample_count;
+			}
+			LOG_DBG("status %d at %d samples", status, data->current_sample);
+			if (data->continuous) {
+				/* In continuous mode, we simply continue to transfer data and call
+				* the callback. No need to stop/restart the DMA engine or even tell
+				* the adc_context subsystem that the buffer is complete.
+				*/
+				adc_context_on_sampling_done(&data->ctx, dev);
+			} else {
+				/* Stop the DMA engine, only to start it again when the callback returns
+				* ADC_ACTION_REPEAT or ADC_ACTION_CONTINUE, or the number of samples
+				* haven't been reached Starting the DMA engine is done
+				* within adc_context_start_sampling
+				*/
+				dma_stop(data->dma.dma_dev, data->dma.channel);
+				/* No need to invalidate the cache because it's assumed that
+				* the address is in a non-cacheable SRAM region.
+				*/
+				adc_context_on_sampling_done(&data->ctx, dev);
+				pm_policy_state_lock_put(PM_STATE_SUSPEND_TO_IDLE,
+							PM_ALL_SUBSTATES);
+				if (IS_ENABLED(CONFIG_PM_S2RAM)) {
+					pm_policy_state_lock_put(PM_STATE_SUSPEND_TO_RAM,
+								PM_ALL_SUBSTATES);
+				}
 			}
 		} else if (status < 0) {
 			LOG_ERR("DMA sampling complete, but DMA reported error %d", status);
@@ -963,9 +989,40 @@ static void dma_callback(const struct device *dev, void *user_data,
 			}
 			adc_context_complete(&data->ctx, status);
 		}
+#if !DT_HAS_COMPAT_STATUS_OKAY(st_stm32f1_adc)
+		if (LL_ADC_IsActiveFlag_OVR(adc)) {
+			LL_ADC_ClearFlag_OVR(adc);
+		}
+#endif /* !DT_HAS_COMPAT_STATUS_OKAY(st_stm32f1_adc) */
 	}
 }
 #endif /* CONFIG_ADC_STM32_DMA */
+
+static int set_continuous(const struct device *dev,
+			  const struct adc_sequence *sequence)
+{
+	const struct adc_stm32_cfg *config = dev->config;
+	ADC_TypeDef *adc = (ADC_TypeDef *)config->base;
+	struct adc_stm32_data *data = dev->data;
+
+	/* "Continuous" mode on this ADC means that the acquisition is *started*
+	 * on a trigger. This is useful for a number of low data-rate applications
+	 * that require tight synchronization. However, for high data-rate waveform
+	 * acquisition, *each sample* needs to be precisely timed instead of just
+	 * the beginning of the acquisition. The only effect of setting continuous
+	 * mode is this triggering difference.
+	 *
+	 * Heuristic: if the user requests "continuous" acquisition but only has
+	 * a single channel, assume they are doing a precision waveform acquisition
+	 * and configure the ADC to trigger each individual sample.
+	 */
+	if (data->continuous && data->channel_count > 1) {
+		LL_ADC_REG_SetContinuousMode(adc, LL_ADC_REG_CONV_CONTINUOUS);
+	} else {
+		LL_ADC_REG_SetContinuousMode(adc, LL_ADC_REG_CONV_SINGLE);
+	}
+	return 0;
+}
 
 static int set_resolution(const struct device *dev,
 			  const struct adc_sequence *sequence)
@@ -1183,10 +1240,19 @@ static int start_read(const struct device *dev,
 	int err;
 
 	data->buffer = sequence->buffer;
+	data->repeat_buffer = sequence->buffer;
 	data->channels = sequence->channels;
 	data->channel_count = POPCOUNT(data->channels);
 	data->samples_count = 0;
 	data->resolution = sequence->resolution;
+	data->current_sample = 0;
+	if (sequence->options) {
+		data->sample_count = data->channel_count * sequence->options->block_size;
+		data->continuous = sequence->options->continuous;
+	} else {
+		data->sample_count = data->channel_count;
+		data->continuous = false;
+	}
 
 	if (data->channel_count == 0) {
 		LOG_ERR("No channels selected");
@@ -1208,6 +1274,12 @@ static int start_read(const struct device *dev,
 	}
 #endif /* DT_HAS_COMPAT_STATUS_OKAY(st_stm32f1_adc) && !CONFIG_ADC_STM32_DMA */
 
+	/* Set continuous mode if requested */
+	err = set_continuous(dev, sequence);
+	if (err < 0) {
+		return err;
+	}
+
 	/* Check and set the resolution */
 	err = set_resolution(dev, sequence);
 	if (err < 0) {
@@ -1222,7 +1294,7 @@ static int start_read(const struct device *dev,
 		return err;
 	}
 
-	err = check_buffer(sequence, data->channel_count);
+	err = check_buffer(sequence, data->sample_count);
 	if (err) {
 		LOG_ERR("ADC buffer error");
 		return err;
@@ -1275,6 +1347,9 @@ static int start_read(const struct device *dev,
 #else
 	LL_ADC_EnableIT_EOC(adc);
 #endif
+#else
+	/* DMA support must be enabled before conversion starts */
+	adc_stm32_enable_dma_support(adc, data->continuous);
 #endif /* CONFIG_ADC_STM32_DMA */
 
 #ifdef CONFIG_ADC_STREAM
@@ -1282,11 +1357,17 @@ static int start_read(const struct device *dev,
 	adc_context_start_sampling(&data->ctx);
 #else /* CONFIG_ADC_STREAM */
 	/* This call will start the DMA */
+	LOG_INF("%s start: CR=%08x CFGR=%08x CFGR2=%08x", dev->name,
+		config->base->CR, config->base->CFGR, config->base->CFGR2);
+
+	/* This call will call adc_context_start_sampling which will start the DMA */
 	adc_context_start_read(&data->ctx, sequence);
 #endif /* CONFIG_ADC_STREAM */
 
-	int result = adc_context_wait_for_completion(&data->ctx);
-
+	int result = 0;
+	if (!data->continuous) {
+		result = adc_context_wait_for_completion(&data->ctx);
+	}
 #ifdef CONFIG_ADC_STM32_DMA
 	/* check if there's anything wrong with dma start */
 	result = (data->dma_error ? data->dma_error : result);
@@ -1314,14 +1395,12 @@ static void adc_context_start_sampling(struct adc_context *ctx)
 	const struct adc_stm32_cfg *config = dev->config;
 	__maybe_unused ADC_TypeDef *adc = config->base;
 
-	data->repeat_buffer = data->buffer;
-
 #ifdef CONFIG_ADC_STM32_DMA
 #if DT_HAS_COMPAT_STATUS_OKAY(st_stm32f4_adc)
 	/* Make sure DMA bit of ADC register CR2 is set to 0 before starting a DMA transfer */
 	LL_ADC_REG_SetDMATransfer(adc, LL_ADC_REG_DMA_TRANSFER_NONE);
 #endif
-	adc_stm32_dma_start(dev, data->buffer, data->channel_count);
+	adc_stm32_dma_start(dev, data->buffer, data->sample_count, data->continuous);
 #endif
 	adc_stm32_start_conversion(dev);
 }
@@ -1333,6 +1412,9 @@ static void adc_context_update_buffer_pointer(struct adc_context *ctx,
 		CONTAINER_OF(ctx, struct adc_stm32_data, ctx);
 
 	if (repeat_sampling) {
+		/* repeat for us means to fully start over */
+		ctx->sampling_index = 0; /* block acquisition counter */
+		data->current_sample = 0; /* sample counter */
 		data->buffer = data->repeat_buffer;
 	}
 }
@@ -1380,8 +1462,8 @@ static void adc_stm32_isr(const struct device *dev)
 #ifndef CONFIG_ADC_STREAM
 		*data->buffer++ = LL_ADC_REG_ReadConversionData32(adc);
 		/* ISR is triggered after each conversion, and at the end-of-sequence. */
-		if (++data->samples_count == data->channel_count) {
-			data->samples_count = 0;
+		if (++data->current_sample == data->sample_count) {
+			data->current_sample = 0;
 			adc_context_on_sampling_done(&data->ctx, dev);
 			pm_policy_state_lock_put(PM_STATE_SUSPEND_TO_IDLE,
 						 PM_ALL_SUBSTATES);
@@ -1714,6 +1796,14 @@ static int adc_stm32_channel_setup(const struct device *dev,
 		goto release;
 	}
 #endif /* ANY_ADC_HAS_CHANNEL_PRESELECTION && CONFIG_ADC_STM32_INJECTED_CHANNELS */
+
+	if (channel_cfg->trig_src != 0) {
+		/* The LL functions expect the value to be already shifted into position. Instead
+		 * we expect the value specified to be the actual trigger ID, so shift manually.
+		 * Also enable rising edge trigger.
+		 */
+		LL_ADC_REG_SetTriggerSource(adc, (channel_cfg->trig_src << ADC_CFGR_EXTSEL_Pos) | ADC_REG_TRIG_EXT_EDGE_DEFAULT);
+	}
 
 #ifdef CONFIG_SOC_SERIES_STM32H5X
 	if (channel_cfg->channel_id == 0) {
@@ -2247,7 +2337,8 @@ static DEVICE_API(adc, api_stm32_driver_api) = {
 			.channel_priority = STM32_DMA_CONFIG_PRIORITY(			\
 				STM32_DMA_CHANNEL_CONFIG_BY_IDX(index, 0)),		\
 			.dma_callback = dma_callback,					\
-			.block_count = 2,						\
+			.complete_callback_en = 1, /* Callback at each block */		\
+			.block_count = 1,						\
 		},									\
 		.src_addr_increment = STM32_DMA_CONFIG_##src_dev##_ADDR_INC(		\
 			STM32_DMA_CHANNEL_CONFIG_BY_IDX(index, 0)),			\
