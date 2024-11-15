@@ -11,3 +11,22 @@ config DAC_STM32
 	select PINCTRL
 	help
 	  Enable the driver implementation for the stm32xx DAC
+
+if DAC_STM32
+
+config DAC_STM32_DMA
+	bool "STM32 MCU DAC DMA Support"
+	select DMA
+	help
+	  Enable the DAC DMA mode for DAC instances
+	  that enable dma channels in their device tree node.
+
+if DAC_STM32
+config DAC_STM32_DMA_MAX_BLOCKS
+	int "Maximum number of buffers"
+	default 4
+	help
+		The maximum number of buffers usable by the DAC DMA.
+endif
+
+endif
