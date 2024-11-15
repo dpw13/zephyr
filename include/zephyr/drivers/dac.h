@@ -34,6 +34,17 @@ extern "C" {
 #define DAC_CHANNEL_BROADCAST	0xFF
 
 /**
+ * @brief Type definition of the optional callback function to be called after
+ *        a requested sampling is done.
+ *
+ * @param dev             Pointer to the device structure for the driver
+ *                        instance.
+ *
+ * @returns True if the buffer should be repeated, false if the conversion should stop.
+ */
+typedef uint8_t (*dac_convert_callback)(const struct device *dev, uint16_t sampling_index);
+
+/**
  * @brief Structure for specifying the configuration of a DAC channel.
  */
 struct dac_channel_cfg {
@@ -51,6 +62,24 @@ struct dac_channel_cfg {
 	 * details on this are hardware dependent.
 	 */
 	bool internal: 1;
+
+	bool continuous: 1;
+	int8_t trig_src;
+
+	/**
+	 * DMA Buffer. Disables DMA if NULL.
+	 */
+	void *buffer_base;
+
+	/**
+	 * Specifies the actual size of the buffer pointed by the "buffer"
+	 * field (in bytes). The driver must ensure that samples are not
+	 * written beyond the limit and it must return an error if the buffer
+	 * turns out to be not large enough to hold all the requested samples.
+	 */
+	size_t buffer_size;
+
+	dac_convert_callback callback;
 };
 
 /**
