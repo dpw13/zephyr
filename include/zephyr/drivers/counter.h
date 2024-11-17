@@ -69,6 +69,12 @@ extern "C" {
  */
 #define COUNTER_TOP_CFG_RESET_WHEN_LATE BIT(1)
 
+/**
+ * @brief Enable hardware trigger on counter rollover.
+ */
+#define COUNTER_TOP_CFG_ENABLE_TRIG  BIT(2)
+
+
 /**@} */
 
 /**
