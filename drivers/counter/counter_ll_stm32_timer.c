@@ -326,6 +326,10 @@ static int counter_stm32_set_top_value(const struct device *dev,
 		}
 	}
 
+	if (cfg->flags & COUNTER_TOP_CFG_ENABLE_TRIG) {
+		LL_TIM_SetTriggerOutput(timer, LL_TIM_TRGO_UPDATE);
+	}
+
 	if (cfg->callback) {
 		LL_TIM_EnableIT_UPDATE(timer);
 	}
