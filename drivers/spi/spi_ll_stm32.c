@@ -671,14 +671,14 @@ static int spi_stm32_configure(const struct device *dev,
 #endif
 		LL_SPI_SetNSSMode(spi, LL_SPI_NSS_SOFT);
 	} else {
-		if (config->operation & SPI_OP_MODE_SLAVE) {
+		if (SPI_OP_MODE_GET(config->operation) == SPI_OP_MODE_SLAVE) {
 			LL_SPI_SetNSSMode(spi, LL_SPI_NSS_HARD_INPUT);
 		} else {
 			LL_SPI_SetNSSMode(spi, LL_SPI_NSS_HARD_OUTPUT);
 		}
 	}
 
-	if (config->operation & SPI_OP_MODE_SLAVE) {
+	if (SPI_OP_MODE_GET(config->operation) == SPI_OP_MODE_SLAVE) {
 		LL_SPI_SetMode(spi, LL_SPI_MODE_SLAVE);
 	} else {
 		LL_SPI_SetMode(spi, LL_SPI_MODE_MASTER);
@@ -702,13 +702,14 @@ static int spi_stm32_configure(const struct device *dev,
 	/* At this point, it's mandatory to set this on the context! */
 	data->ctx.config = config;
 
-	LOG_DBG("Installed config %p: freq %uHz (div = %u),"
-		    " mode %u/%u/%u, slave %u",
+	LOG_INF("%s: Installed config %p: freq %uHz (div = %u),"
+		    " mode %u/%u/%u, slave %u op %d CFG2=%08x",
+		    dev->name,
 		    config, clock >> br, 1 << br,
 		    (SPI_MODE_GET(config->operation) & SPI_MODE_CPOL) ? 1 : 0,
 		    (SPI_MODE_GET(config->operation) & SPI_MODE_CPHA) ? 1 : 0,
 		    (SPI_MODE_GET(config->operation) & SPI_MODE_LOOP) ? 1 : 0,
-		    config->slave);
+		    config->slave, config->operation, spi->CFG2);
 
 	return 0;
 }
