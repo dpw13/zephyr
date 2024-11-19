@@ -27,7 +27,7 @@ static void rt_stats_dump(const struct shell *sh, struct k_thread *thread)
 	}
 
 	if (ret == 0) {
-		pcnt = (rt_stats_thread.execution_cycles * 100U) /
+		pcnt = (rt_stats_thread.execution_cycles * 10000U) /
 		       rt_stats_all.execution_cycles;
 
 		/*
@@ -37,9 +37,9 @@ static void rt_stats_dump(const struct shell *sh, struct k_thread *thread)
 		 * so it won't increase RAM/ROM usage too much on 32-bit
 		 * targets.
 		 */
-		shell_print(sh, "\tTotal execution cycles: %u (%u %%)",
-			    (uint32_t)rt_stats_thread.execution_cycles,
-			    pcnt);
+		shell_print(sh, "\tTotal execution cycles: %u/%u (%u.%02u %%)",
+			    (uint32_t)rt_stats_thread.execution_cycles, (uint32_t)rt_stats_all.execution_cycles,
+			    (pcnt / 100), (pcnt % 100));
 #ifdef CONFIG_SCHED_THREAD_USAGE_ANALYSIS
 		shell_print(sh, "\tCurrent execution cycles: %u",
 			    (uint32_t)rt_stats_thread.current_cycles);
