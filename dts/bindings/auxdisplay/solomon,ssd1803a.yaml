@@ -1,0 +1,81 @@
+# Copyright (c) 2023 Chen Xingyu <hi@xingrz.me>
+# SPDX-License-Identifier: Apache-2.0
+
+description: Solomon Systech SSD1803A Dot Character VFD Controller/Driver IC
+
+compatible: "solomon,ssd1803a"
+
+include: [auxdisplay-device.yaml, spi-device.yaml]
+
+properties:
+  cursor:
+    type: boolean
+    description: Highlight active cursor.
+
+  blink:
+    type: boolean
+    description: Blink character at cursor position.
+
+  brightness:
+    default: 127
+    type: int
+    description: Default brightness.
+
+  invert:
+    type: boolean
+    description: Invert display (white on black).
+
+  invert-cursor:
+    type: boolean
+    description: Invert character at cursor position.
+
+  enable-segram:
+    type: boolean
+    description: Enable segment RAM.
+
+  disable-boost:
+    type: boolean
+    description: Disable voltage boost and regulator.
+
+  cgrom-size:
+    type: int
+    enum:
+      - 256
+      - 250
+      - 248
+      - 240
+    default: 256
+    description: The mapped size of the CGROM. Remaining character indexes are used for custom characters.
+
+  character-set:
+    type: int
+    enum:
+      - 0
+      - 1
+      - 2
+    default: 0
+    description: Which CGROM to use.
+
+  reset-gpios:
+    type: phandle-array
+    description: Reset pin.
+
+  mode-gpios:
+    type: phandle-array
+    description: SPI/I2C mode pin.
+
+  columns:
+    enum:
+      - 16
+      - 20
+      - 32
+      - 40
+      - 64
+      - 80
+
+  rows:
+    enum:
+      - 1
+      - 2
+      - 3
+      - 4
