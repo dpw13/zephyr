@@ -490,10 +490,10 @@ static int ospi_read_sfdp(const struct device *dev, off_t addr, void *data,
 	/* There is a sfdp-bfp property in the deviceTree : do not read the flash */
 	const struct flash_stm32_ospi_config *dev_cfg = dev->config;
 
-	LOG_INF("Read SFDP from DTS property");
+	LOG_INF("Read SFDP at offset 0x%lx from DTS property", addr);
 	/* If DTS has the sdfp table property, check its length */
 	if (size > DT_INST_PROP_LEN(0, sfdp_bfp)) {
-		LOG_ERR("SDFP bdfp length is wrong (%d)", DT_INST_PROP_LEN(0, sfdp_bfp));
+		LOG_ERR("SDFP bdfp length (%d) is too short (%d)", DT_INST_PROP_LEN(0, sfdp_bfp), size);
 		return -EIO;
 	}
 	/* The dev_cfg->sfdp_bfp if filled from the DTS property */
@@ -954,6 +954,7 @@ static int stm32_ospi_mem_reset(const struct device *dev)
 		return -EIO;
 	}
 
+#if 0
 	/* Reset enable in OPI mode and STR transfer mode */
 	s_command.InstructionMode    = HAL_OSPI_INSTRUCTION_8_LINES;
 	s_command.InstructionDtrMode = HAL_OSPI_INSTRUCTION_DTR_DISABLE;
@@ -989,6 +990,7 @@ static int stm32_ospi_mem_reset(const struct device *dev)
 		LOG_ERR("OSPI reset memory (OPI/DTR) failed");
 		return -EIO;
 	}
+#endif
 
 #endif
 	/* Wait after SWreset CMD, in case SWReset occurred during erase operation */
@@ -1074,7 +1076,8 @@ static int stm32_ospi_set_memorymap(const struct device *dev)
 
 	/* Initialize the program command */
 	s_command.OperationType = HAL_OSPI_OPTYPE_WRITE_CFG;
-	s_command.DQSMode = HAL_OSPI_DQS_DISABLE;
+	/* DQSE MUST be 1 for writes in memory mapped mode, whether we use it or not. */
+	s_command.DQSMode = HAL_OSPI_DQS_ENABLE;
 
 	s_command.Instruction = dev_data->write_opcode;
 	s_command.DummyCycles = 0U;
@@ -1712,7 +1715,7 @@ void HAL_OSPI_TimeOutCallback(OSPI_HandleTypeDef *hospi)
 	struct flash_stm32_ospi_data *dev_data =
 		CONTAINER_OF(hospi, struct flash_stm32_ospi_data, hospi);
 
-	LOG_DBG("Timeout cb");
+	//LOG_DBG("Timeout cb");
 
 	dev_data->cmd_status = -EIO;
 
