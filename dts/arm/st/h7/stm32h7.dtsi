@@ -842,6 +842,23 @@
 			status = "disabled";
 		};
 
+		dfsdm1: dfsdm@40017800 {
+			compatible = "st,stm32-dfsdm";
+			reg = <0x40017800 0x20>, <0x40017900 0x80>;
+			/* TODO: this is ugly but is enough for now */
+			reg-names = "filter", "channel";
+			/* One interrupt per filter */
+			interrupts = <110 0>, <111 0>, <112 0>, <113 0>, <114 0>;
+			clocks = <&rcc STM32_CLOCK(APB2, 30U)>; /* This actually appears to be the enable, not the clock selection */
+			resets = <&rctl STM32_RESET(APB2, 30U)>;
+			status = "okay";
+			/* DFSDM AClk SAI1SEL (RCC_D2CCIP1R.SAI1SEL) */
+			/* DFSDM Clk DFSDM1SEL, sys_clk(1), bus_clk(0) (RCC_D2CCIP1R.DFSDM1SEL) */
+			/* Reset: RCC_APB2RSTR.DFSDM1RST */
+			/* Enable DFSDMEN/DFSDMLPEN */
+			/* SAI1 enable/reset are NOT required */
+		};
+
 		/*
 		 * For devices STM32H742, H743, H750 & H753, revision Y only,
 		 * resolution 14 and 12 shall be replaced, respectively, by

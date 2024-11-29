@@ -1125,6 +1125,8 @@ static int start_read(const struct device *dev,
 	/* DMA support must be enabled before conversion starts */
 	adc_stm32_enable_dma_support(adc, data->continuous);
 #endif /* CONFIG_ADC_STM32_DMA */
+	/* TODO: HACK */
+	LL_ADC_REG_SetDataTransferMode(adc, LL_ADC_REG_DFSDM_TRANSFER);
 
 	LOG_INF("%s start: CR=%08x CFGR=%08x CFGR2=%08x", dev->name,
 		config->base->CR, config->base->CFGR, config->base->CFGR2);
