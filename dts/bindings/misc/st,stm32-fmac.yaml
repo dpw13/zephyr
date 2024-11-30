@@ -1,0 +1,60 @@
+description: STM32 Digital Filter Accelerator Module
+
+compatible: "st,stm32-fmac"
+
+include:
+  - name: base.yaml
+  - name: reset-device.yaml
+
+properties:
+  reg:
+    required: true
+
+  clocks:
+    required: true
+
+  resets:
+    required: true
+
+  interrupts:
+    required: true
+  
+  x1_wm:
+    type: int
+    enum:
+      - 1
+      - 2
+      - 4
+      - 8
+    default: 2
+    description: Watermark for X1 buffer in samples.
+
+  y_wm:
+    type: int
+    enum:
+      - 1
+      - 2
+      - 4
+      - 8
+    default: 2
+    description: Watermark for Y buffer in samples.
+
+  x1_size:
+    type: int
+    default: 4
+    description: Entries allocated for X1 buffer.
+
+  x2_size:
+    type: int
+    default: 248
+    description: Entries allocated for X2 buffer.
+    
+  y_size:
+    type: int
+    default: 4
+    description: Entries allocated for Y buffer.
+
+  lshift:
+    type: int
+    default: 0
+    description: Left-shift applied to output data.
