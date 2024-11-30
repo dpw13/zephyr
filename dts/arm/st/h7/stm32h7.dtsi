@@ -846,7 +846,7 @@
 			compatible = "st,stm32-dfsdm";
 			reg = <0x40017800 0x20>, <0x40017900 0x80>;
 			/* TODO: this is ugly but is enough for now */
-			reg-names = "filter", "channel";
+			reg-names = "channel", "filter";
 			/* One interrupt per filter */
 			interrupts = <110 0>, <111 0>, <112 0>, <113 0>, <114 0>;
 			clocks = <&rcc STM32_CLOCK(APB2, 30U)>; /* This actually appears to be the enable, not the clock selection */
@@ -1015,6 +1015,26 @@
 			reg = <0x48021800 0x400>;
 			clocks = <&rcc STM32_CLOCK(AHB2, 6U)>;
 			interrupts = <80 0>;
+			status = "disabled";
+		};
+
+		cordic: cordic@48024400 {
+			compatible = "st,stm32-cordic";
+			reg = <0x48024400 0x3c00>;
+			clocks = <&rcc STM32_CLOCK(AHB2, 17U)>;
+			resets = <&rctl STM32_RESET(AHB2, 17U)>;
+			interrupts = <154 0>;
+			/* dmamux1 122 RD 123 WR */
+			status = "disabled";
+		};
+
+		fmac: fmac@48024000 {
+			compatible = "st,stm32-fmac";
+			reg = <0x48024000 0x400>;
+			clocks = <&rcc STM32_CLOCK(AHB2, 16U)>;
+			resets = <&rctl STM32_RESET(AHB2, 16U)>;
+			interrupts = <153 0>;
+			/* dmamux1 120 RD 121 WR */
 			status = "disabled";
 		};
 
