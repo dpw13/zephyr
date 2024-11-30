@@ -15,6 +15,34 @@
 /* Maximum data sent in single transfer (Bytes) */
 #define DMA_STM32_MAX_DATA_ITEMS	0xffff
 
+#include <zephyr/stats/stats.h>
+
+STATS_SECT_START(dma)
+STATS_SECT_ENTRY32(irq)
+STATS_SECT_ENTRY32(irq_ignored)
+STATS_SECT_ENTRY32(irq_unexpected)
+STATS_SECT_ENTRY32(transfer_complete)
+STATS_SECT_ENTRY32(half_transfer)
+STATS_SECT_ENTRY32(transfer_error)
+STATS_SECT_ENTRY32(start)
+STATS_SECT_ENTRY32(stop)
+STATS_SECT_ENTRY32(reload)
+STATS_SECT_ENTRY32(callbacks)
+STATS_SECT_END;
+
+STATS_NAME_START(dma)
+STATS_NAME(dma, irq)
+STATS_NAME(dma, irq_ignored)
+STATS_NAME(dma, irq_unexpected)
+STATS_NAME(dma, transfer_complete)
+STATS_NAME(dma, half_transfer)
+STATS_NAME(dma, transfer_error)
+STATS_NAME(dma, start)
+STATS_NAME(dma, stop)
+STATS_NAME(dma, reload)
+STATS_NAME(dma, callbacks)
+STATS_NAME_END(dma);
+
 struct dma_stm32_stream {
 	uint32_t direction;
 #ifdef CONFIG_DMAMUX_STM32
@@ -28,10 +56,13 @@ struct dma_stm32_stream {
 	void *user_data; /* holds the client data */
 	dma_callback_t dma_callback;
 	bool cyclic;
+	/* Yuck, but where else would this go? */
+	char stream_name[16];
+	struct stats_dma stats;
 };
 
 struct dma_stm32_data {
-		struct dma_context dma_ctx;
+	struct dma_context dma_ctx;
 };
 
 struct dma_stm32_config {
