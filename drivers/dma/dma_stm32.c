@@ -95,9 +95,11 @@ static void dma_stm32_irq_handler(const struct device *dev, uint32_t id)
 	__ASSERT_NO_MSG(id < config->max_streams);
 
 	stream = &config->streams[id];
+	STATS_INC(stream->stats, irq);
 
 	/* The busy channel is pertinent if not overridden by the HAL */
 	if ((stream->hal_override != true) && (stream->busy == false)) {
+		STATS_INC(stream->stats, irq_ignored);
 		/*
 		 * When DMA channel is not overridden by HAL,
 		 * ignore irq if the channel is not busy anymore
@@ -114,11 +116,14 @@ static void dma_stm32_irq_handler(const struct device *dev, uint32_t id)
 	/* The dma stream id is in range from STM32_DMA_STREAM_OFFSET..<dma-requests> */
 	if (stm32_dma_is_ht_irq_active(dma, id)) {
 		/* Let HAL DMA handle flags on its own */
+		STATS_INC(stream->stats, half_transfer);
 		if (!stream->hal_override) {
 			dma_stm32_clear_ht(dma, id);
 		}
+		STATS_INC(stream->stats, callbacks);
 		stream->dma_callback(dev, stream->user_data, callback_arg, DMA_STATUS_BLOCK);
 	} else if (stm32_dma_is_tc_irq_active(dma, id)) {
+		STATS_INC(stream->stats, transfer_complete);
 		/* Circular buffer never stops receiving as long as peripheral is enabled */
 		if (!stream->cyclic) {
 			stream->busy = false;
@@ -127,12 +132,15 @@ static void dma_stm32_irq_handler(const struct device *dev, uint32_t id)
 		if (!stream->hal_override) {
 			dma_stm32_clear_tc(dma, id);
 		}
+		STATS_INC(stream->stats, callbacks);
 		stream->dma_callback(dev, stream->user_data, callback_arg, DMA_STATUS_COMPLETE);
 	} else if (stm32_dma_is_unexpected_irq_happened(dma, id)) {
+		STATS_INC(stream->stats, irq_unexpected);
 		LOG_ERR("Unexpected irq happened.");
 		stream->dma_callback(dev, stream->user_data,
 				     callback_arg, -EIO);
 	} else {
+		STATS_INC(stream->stats, transfer_error);
 		LOG_ERR("Transfer Error.");
 		stream->busy = false;
 		dma_stm32_dump_stream_irq(dev, id);
@@ -527,6 +535,7 @@ DMA_STM32_EXPORT_API int dma_stm32_reload(const struct device *dev, uint32_t id,
 	}
 
 	stream = &config->streams[id];
+	STATS_INC(stream->stats, reload);
 
 	if (dma_stm32_disable_stream(dma, id) != 0) {
 		return -EBUSY;
@@ -584,6 +593,7 @@ DMA_STM32_EXPORT_API int dma_stm32_start(const struct device *dev, uint32_t id)
 	/* When starting the dma, the stream is busy before enabling */
 	stream = &config->streams[id];
 	stream->busy = true;
+	STATS_INC(stream->stats, start);
 
 	dma_stm32_clear_stream_irq(dev, id);
 	stm32_dma_enable_stream(dma, id);
@@ -596,6 +606,8 @@ DMA_STM32_EXPORT_API int dma_stm32_stop(const struct device *dev, uint32_t id)
 	const struct dma_stm32_config *config = dev->config;
 	struct dma_stm32_stream *stream = &config->streams[id - STM32_DMA_STREAM_OFFSET];
 	DMA_TypeDef *dma = (DMA_TypeDef *)(config->base);
+
+	STATS_INC(stream->stats, stop);
 
 	/* Give channel from index 0 */
 	id = id - STM32_DMA_STREAM_OFFSET;
@@ -651,6 +663,11 @@ static int dma_stm32_init(const struct device *dev)
 	config->config_irq(dev);
 
 	for (uint32_t i = 0; i < config->max_streams; i++) {
+		snprintf(config->streams[i].stream_name, 16, "%s:%d", dev->name, i);
+		stats_init(&config->streams[i].stats.s_hdr, STATS_SIZE_32, 10,
+				STATS_NAME_INIT_PARMS(dma));
+		stats_register(config->streams[i].stream_name, &(config->streams[i].stats.s_hdr));
+
 		config->streams[i].busy = false;
 #ifdef CONFIG_DMAMUX_STM32
 		/* Each further stream->mux_channel is fixed here */
