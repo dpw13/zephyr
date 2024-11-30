@@ -88,6 +88,8 @@ static void dma_callback(const struct device *dev, void *user_data, uint32_t cha
 	/* user_data directly holds the dac device */
 	struct dac_stm32_data *data = user_data;
 
+	LOG_DBG("callback");
+
 	if (channel == data->dma.channel) {
 		if (status < 0) {
 			LOG_ERR("DMA conversion complete, but DMA reported error %d", status);
@@ -99,8 +101,8 @@ static void dma_callback(const struct device *dev, void *user_data, uint32_t cha
 		/* First half of buffer if we get DMA_STATUS_BLOCK, second half if complete. */
 		uint16_t sampling_index = (status == DMA_STATUS_COMPLETE) ? 1 : 0;
 
-		if (data->dma.callback == NULL || data->dma.callback(dev, sampling_index) == 0) {
-			LOG_DBG("DMA callback empty or requesting stop");
+		if (data->dma.callback != NULL && data->dma.callback(dev, sampling_index) == 0) {
+			LOG_DBG("DMA callback requesting stop");
 			/* Stop conversion */
 			dma_stop(data->dma.dma_dev, data->dma.channel);
 			return;
@@ -131,6 +133,19 @@ static int dac_stm32_dma_start(const struct device *dev, const struct dac_channe
 		reg_id = LL_DAC_DMA_REG_DATA_12BITS_LEFT_ALIGNED;
 	}
 
+	uint32_t hal_channel_id;
+	if (channel_cfg->channel_id == STM32_FIRST_CHANNEL) {
+		/* I don't think using `dma_slot` to store the peripheral request
+		 * ID is the right way to go, but that's the way the dma_stm32
+		 * driver is written.
+		 */
+		dma->dma_cfg.dma_slot = LL_DMAMUX1_REQ_DAC1_CH1;
+		hal_channel_id = LL_DAC_CHANNEL_1;
+	} else {
+		dma->dma_cfg.dma_slot = LL_DMAMUX1_REQ_DAC1_CH2;
+		hal_channel_id = LL_DAC_CHANNEL_2;
+	}
+
 	blk_cfg = &dma->dma_blk_cfg;
 
 	/* prepare the block */
@@ -138,11 +153,16 @@ static int dac_stm32_dma_start(const struct device *dev, const struct dac_channe
 
 	/* Source and destination. Buffers must be contiguous. */
 	blk_cfg->source_address = (uintptr_t)channel_cfg->buffer_base;
-	blk_cfg->source_addr_adj = DMA_ADDR_ADJ_INCREMENT;
+	if (channel_cfg->buffer_size == 0) {
+		/* If this is a register transfer, don't increment the address */
+		blk_cfg->source_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
+	} else {
+		blk_cfg->source_addr_adj = DMA_ADDR_ADJ_INCREMENT;
+	}
 	blk_cfg->source_reload_en = 1;
 
 
-	blk_cfg->dest_address = (uint32_t)LL_DAC_DMA_GetRegAddr(dac, channel_cfg->channel_id, reg_id);
+	blk_cfg->dest_address = (uint32_t)LL_DAC_DMA_GetRegAddr(dac, hal_channel_id, reg_id);
 	blk_cfg->dest_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
 	blk_cfg->dest_reload_en = 1;
 
@@ -152,19 +172,11 @@ static int dac_stm32_dma_start(const struct device *dev, const struct dac_channe
 	blk_cfg->fifo_mode_control = 0;
 	blk_cfg->next_block = NULL;
 
-	if (channel_cfg->channel_id == STM32_FIRST_CHANNEL) {
-		/* I don't think using `dma_slot` to store the peripheral request
-		 * ID is the right way to go, but that's the way the dma_stm32
-		 * driver is written.
-		 */
-		dma->dma_cfg.dma_slot = LL_DMAMUX1_REQ_DAC1_CH1;
-	} else {
-		dma->dma_cfg.dma_slot = LL_DMAMUX1_REQ_DAC1_CH2;
-	}
+	LOG_DBG("DMA:%d configured with request id %d dest addr %p", channel_cfg->channel_id, dma->dma_cfg.dma_slot, (void *)blk_cfg->dest_address);
 
 	dma->dma_cfg.block_count = 1;
 	/* direction is given by the DT */
-	dma->dma_cfg.complete_callback_en = 1; /* Callback at each block */
+	dma->dma_cfg.complete_callback_en = 0; /* Callback only at TC */
 
 	dma->dma_cfg.head_block = blk_cfg;
 	dma->dma_cfg.user_data = data;
@@ -178,7 +190,7 @@ static int dac_stm32_dma_start(const struct device *dev, const struct dac_channe
 	}
 
 	/* Enable DMA */
-	LL_DAC_EnableDMAReq(dac, channel_cfg->channel_id);
+	LL_DAC_EnableDMAReq(dac, hal_channel_id);
 
 	data->dma_error = 0;
 	ret = dma_start(data->dma.dma_dev, data->dma.channel);
@@ -227,6 +239,7 @@ static int dac_stm32_channel_setup(const struct device *dev,
 	struct dac_stm32_data *data = dev->data;
 	const struct dac_stm32_cfg *cfg = dev->config;
 	uint32_t cfg_setting, channel;
+	int ret;
 
 	if ((channel_cfg->channel_id - STM32_FIRST_CHANNEL >=
 			data->channel_count) ||
@@ -243,8 +256,13 @@ static int dac_stm32_channel_setup(const struct device *dev,
 		return -ENOTSUP;
 	}
 
-	if (channel_cfg->buffer_base && channel_cfg->buffer_size != 0) {
-		dac_stm32_dma_start(dev, channel_cfg);
+	if (channel_cfg->buffer_base) {
+		ret = dac_stm32_dma_start(dev, channel_cfg);
+		if (ret < 0) {
+			LOG_ERR("Failed to start DAC DMA: %d", ret);
+		} else {
+			LOG_DBG("DMA started");
+		}
 	}
 
 	channel = table_channels[channel_cfg->channel_id - STM32_FIRST_CHANNEL];
