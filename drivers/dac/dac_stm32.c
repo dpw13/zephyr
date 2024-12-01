@@ -153,11 +153,11 @@ static int dac_stm32_dma_start(const struct device *dev, const struct dac_channe
 
 	/* Source and destination. Buffers must be contiguous. */
 	blk_cfg->source_address = (uintptr_t)channel_cfg->buffer_base;
-	if (channel_cfg->buffer_size == 0) {
-		/* If this is a register transfer, don't increment the address */
-		blk_cfg->source_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
-	} else {
+	/* Use DT config to determine whether to increment */
+	if (dma->src_addr_increment) {
 		blk_cfg->source_addr_adj = DMA_ADDR_ADJ_INCREMENT;
+	} else {
+		blk_cfg->source_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
 	}
 	blk_cfg->source_reload_en = 1;
 
@@ -354,7 +354,7 @@ static DEVICE_API(dac, api_stm32_driver_api) = {
 				.dest_data_size = STM32_DMA_CONFIG_##dest_dev##_DATA_SIZE(         \
 					STM32_DMA_CHANNEL_CONFIG_BY_IDX(index, 0)),                \
 				.source_burst_length = 1, /* SINGLE transfer */                    \
-				.dest_burst_length = 8,   /* SINGLE transfer */                    \
+				.dest_burst_length = 1,   /* SINGLE transfer */                    \
 				.channel_priority = STM32_DMA_CONFIG_PRIORITY(                     \
 					STM32_DMA_CHANNEL_CONFIG_BY_IDX(index, 0)),                \
 				.dma_callback = dma_callback,                                      \
