@@ -58,3 +58,7 @@ properties:
     type: int
     default: 0
     description: Left-shift applied to output data.
+
+  clip:
+    type: boolean
+    description: Enable clipping (saturation on output).
