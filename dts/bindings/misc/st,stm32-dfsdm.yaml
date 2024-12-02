@@ -18,3 +18,18 @@ properties:
 
   interrupts:
     required: true
+
+  sinc_order:
+    type: int
+    description: The order of the Sinc filter used. Can be 0 for FastSinc,
+      1 for first-order, up to 5 for 5th-order Sinc.
+
+  intg_oversample:
+    type: int
+    description: The amount of decimation performed in the integrator stage
+      minus one. Set to 1 to disable the integrator decimation.
+
+  sinc_oversample:
+    type: int
+    description: The amount of decimation performed in the filter stage
+      minus one. Set to 1 to disable the filter decimation.
