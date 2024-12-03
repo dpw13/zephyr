@@ -939,6 +939,20 @@
 			#io-channel-cells = <1>;
 		};
 
+		opamp1: opamp@40009000 {
+			compatible = "st,stm32-opamp";
+			reg = <0x40009000 0x10>;
+			clocks = <&rcc STM32_CLOCK(APB1_2, 4U)>;
+			status = "disabled";
+		};
+
+		opamp2: opamp@40009010 {
+			compatible = "st,stm32-opamp";
+			reg = <0x40009010 0x10>;
+			clocks = <&rcc STM32_CLOCK(APB1_2, 4U)>;
+			status = "disabled";
+		};
+
 		dma1: dma@40020000 {
 			compatible = "st,stm32-dma-v1";
 			#dma-cells = <4>;
