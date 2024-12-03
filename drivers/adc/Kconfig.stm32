@@ -33,4 +33,11 @@ config ADC_STM32_DMA
 	  Enable the ADC DMA mode for ADC instances
 	  that enable dma channels in their device tree node.
 
+config ADC_STM32_DISABLE_IRQ
+	bool "Disable STM32 MCU ADC ISR"
+	help
+	  Disables the driver's handling of interrupt requests from the ADC.
+	  Only select this if you are polling the ADC directly or using
+	  special hardware like the DFSDM to filter ADC samples.
+
 endif

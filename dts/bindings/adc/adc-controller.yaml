@@ -80,6 +80,10 @@ child-binding:
         - "ADC_GAIN_64"
         - "ADC_GAIN_128"
 
+    zephyr,offset:
+      type: int
+      description: Fixed channel offset.
+
     zephyr,reference:
       type: string
       required: true
