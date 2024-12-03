@@ -1181,7 +1181,7 @@ static void adc_context_update_buffer_pointer(struct adc_context *ctx,
 	}
 }
 
-#ifndef CONFIG_ADC_STM32_DMA
+#if ! defined(CONFIG_ADC_STM32_DMA) && ! defined(CONFIG_ADC_STM32_DISABLE_IRQ)
 static void adc_stm32_isr(const struct device *dev)
 {
 	struct adc_stm32_data *data = dev->data;
@@ -1416,6 +1416,14 @@ static int adc_stm32_channel_setup(const struct device *dev,
 		 * Also enable rising edge trigger.
 		 */
 		LL_ADC_REG_SetTriggerSource(adc, (channel_cfg->trig_src << ADC_CFGR_EXTSEL_Pos) | ADC_REG_TRIG_EXT_EDGE_DEFAULT);
+	}
+
+	if (channel_cfg->offset != 0) {
+		/* This naive approach overwrites one of the four available offsets and so isn't
+		 * useful when multiple channels are enabled.
+		 */
+		LL_ADC_SetOffset(adc, LL_ADC_OFFSET_1,
+			__LL_ADC_DECIMAL_NB_TO_CHANNEL(channel_cfg->channel_id), channel_cfg->offset);
 	}
 
 #ifdef CONFIG_SOC_SERIES_STM32H5X
@@ -1870,8 +1878,19 @@ static DEVICE_API(adc, api_stm32_driver_api) = {
 #define ADC_STM32_IRQ_FUNC(index)					\
 	.irq_cfg_func = NULL,
 
-#else /* CONFIG_ADC_STM32_DMA */
+#elif defined(CONFIG_ADC_STM32_DISABLE_IRQ) /* CONFIG_ADC_STM32_DMA */
 
+/* 
+ * Disable both ISR and DMA. This shouldn't be enabled unless the user
+ * REALLY knows what they're doing.
+ */
+
+#define ADC_DMA_CHANNEL_INIT(index, src_dev, dest_dev)
+
+#define ADC_STM32_IRQ_FUNC(index)					\
+	.irq_cfg_func = NULL,
+
+#else /* !CONFIG_ADC_STM32_DMA, !CONFIG_ADC_STM32_DISABLE_IRQ */
 /*
  * For series that share interrupt lines for multiple ADC instances
  * and have separate interrupt lines for other ADCs (example,
