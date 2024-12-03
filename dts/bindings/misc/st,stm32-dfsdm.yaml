@@ -33,3 +33,9 @@ properties:
     type: int
     description: The amount of decimation performed in the filter stage
       minus one. Set to 1 to disable the filter decimation.
+
+  rshift:
+    type: int
+    default: 0
+    description: The number of bits to shift the intermediate accumulated result
+      before placing the result into the output data register.
