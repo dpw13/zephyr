@@ -1805,6 +1805,14 @@ static int adc_stm32_channel_setup(const struct device *dev,
 		LL_ADC_REG_SetTriggerSource(adc, (channel_cfg->trig_src << ADC_CFGR_EXTSEL_Pos) | ADC_REG_TRIG_EXT_EDGE_DEFAULT);
 	}
 
+	if (channel_cfg->offset != 0) {
+		/* This naive approach overwrites one of the four available offsets and so isn't
+		 * useful when multiple channels are enabled.
+		 */
+		LL_ADC_SetOffset(adc, LL_ADC_OFFSET_1,
+			__LL_ADC_DECIMAL_NB_TO_CHANNEL(channel_cfg->channel_id), channel_cfg->offset);
+	}
+
 #ifdef CONFIG_SOC_SERIES_STM32H5X
 	if (channel_cfg->channel_id == 0) {
 		/* To read channel 0 of either ADC on H5, Option bit 0 of ADC1 must be set. */

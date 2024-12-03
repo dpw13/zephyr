@@ -201,6 +201,11 @@ struct adc_channel_cfg {
 	 */
 	uint32_t vbias_pins;
 #endif /* CONFIG_ADC_CONFIGURABLE_VBIAS_PIN */
+
+	/**
+	 * Per-channel offset.
+	 */
+	uint32_t offset;
 };
 
 /**
@@ -269,6 +274,7 @@ struct adc_channel_cfg {
  */
 #define ADC_CHANNEL_CFG_DT(node_id) { \
 	.gain             = DT_STRING_TOKEN(node_id, zephyr_gain), \
+	.offset           = DT_PROP(node_id, zephyr_offset), \
 	.reference        = DT_STRING_TOKEN(node_id, zephyr_reference), \
 	.acquisition_time = DT_PROP(node_id, zephyr_acquisition_time), \
 	.trig_src         = DT_PROP(node_id, zephyr_trig_src), \
