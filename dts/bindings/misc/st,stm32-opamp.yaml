@@ -1,0 +1,22 @@
+description: STM32 On-board OPAMP
+
+compatible: "st,stm32-opamp"
+
+include:
+  - name: base.yaml
+  - name: pinctrl-device.yaml
+
+properties:
+  reg:
+    required: true
+
+  clocks:
+    required: true
+
+  pos-term:
+    type: int
+    required: true
+
+  neg-term:
+    type: int
+    required: true
