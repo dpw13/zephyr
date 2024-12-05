@@ -1,0 +1,20 @@
+description: STM32 CORDIC Accelerator Module
+
+compatible: "st,stm32-cordic"
+
+include:
+  - name: base.yaml
+  - name: reset-device.yaml
+
+properties:
+  reg:
+    required: true
+
+  clocks:
+    required: true
+
+  resets:
+    required: true
+
+  interrupts:
+    required: true
