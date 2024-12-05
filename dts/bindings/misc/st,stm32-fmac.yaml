@@ -19,6 +19,21 @@ properties:
   interrupts:
     required: true
   
+  operation:
+    type: string
+    enum:
+      - "convolution"
+      - "iir"
+    default: "convolution"
+    description: Selects the type of operation performed by the FMAC. When configuring
+      the FMAC for FIR, select "convolution".
+
+  feedback_coeffs:
+    type: int
+    default: 0
+    description: The number of feedback coefficients for an IIR filter. Only meaningful
+      if `operation` is set to "iir".
+
   x1_wm:
     type: int
     enum:
