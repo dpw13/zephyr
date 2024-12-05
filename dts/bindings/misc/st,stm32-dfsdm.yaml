@@ -20,9 +20,16 @@ properties:
     required: true
 
   sinc_order:
-    type: int
-    description: The order of the Sinc filter used. Can be 0 for FastSinc,
-      1 for first-order, up to 5 for 5th-order Sinc.
+    type: string
+    default: "fastsinc"
+    enum:
+      - "fastsinc"
+      - "sinc1"
+      - "sinc2"
+      - "sinc3"
+      - "sinc4"
+      - "sinc5"
+    description: The type and order of the Sinc filter used.
 
   intg_oversample:
     type: int
