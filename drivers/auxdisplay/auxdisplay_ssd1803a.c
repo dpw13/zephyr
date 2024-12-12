@@ -330,29 +330,10 @@ static inline int auxdisplay_ssd1803a_ddram_address_set(const struct device *dev
 
 static int auxdisplay_ssd1803a_cursor_position_apply(const struct device *dev)
 {
-	const struct auxdisplay_ssd1803a_config *config = dev->config;
 	struct auxdisplay_ssd1803a_data *data = dev->data;
 	uint8_t addr;
-	uint8_t offset = 0;
 
-	switch (config->capabilities.rows) {
-	case 1:
-		addr = data->cursor_x;
-		break;
-	case 2:
-		addr = 16 * data->cursor_y + data->cursor_x;
-		break;
-	case 3:
-	case 4:
-		/* 32 (decimal) entries in CGRAM doesn't match the datasheet,
-		 * which specifies 20 (decimal)
-		 */
-		addr = 32 * data->cursor_y + data->cursor_x + offset;
-		break;
-	default:
-		LOG_ERR("Invalid row count");
-		return -EINVAL;
-	}
+	addr = 0x20 * data->cursor_y + data->cursor_x;
 
 	return auxdisplay_ssd1803a_ddram_address_set(dev, addr);
 }
@@ -460,7 +441,7 @@ static int auxdisplay_ssd1803a_custom_character_set(const struct device *dev,
 	const struct auxdisplay_ssd1803a_config *config = dev->config;
 	int ret;
 	/* Each custom character is 8 bytes */
-	uint8_t buf[8] = {0};
+	uint8_t buf[8];
 	uint8_t *pxl;
 
 	if (character->index >= config->capabilities.custom_characters) {
@@ -482,15 +463,16 @@ static int auxdisplay_ssd1803a_custom_character_set(const struct device *dev,
 
 	/* Map the uint8_t buffer to the format used in CGRAM */
 	pxl = character->data;
-	for (int x = 0; x < config->capabilities.custom_character_width; x++) {
-		for (int y = 0; y < config->capabilities.custom_character_height; y++) {
+	memset(&buf[0], 0x00, sizeof(buf));
+	for (int y = 0; y < config->capabilities.custom_character_height; y++) {
+		for (int x = 0; x < config->capabilities.custom_character_width; x++) {
 			if (*pxl++ > 0) {
-				SET_BIT(buf[y], x);
+				buf[y] |= BIT(x);
 			}
 		}
 	}
 
-	ret = auxdisplay_ssd1803a_data(dev, buf, ARRAY_SIZE(buf));
+	ret = auxdisplay_ssd1803a_data(dev, &buf[0], ARRAY_SIZE(buf));
 	if (ret != 0) {
 		return ret;
 	}
@@ -711,7 +693,7 @@ static const struct auxdisplay_driver_api auxdisplay_ssd1803a_auxdisplay_api = {
 				.backlight.minimum = AUXDISPLAY_LIGHT_NOT_SUPPORTED,               \
 				.backlight.maximum = AUXDISPLAY_LIGHT_NOT_SUPPORTED,               \
 				.custom_characters = 8,                                            \
-				.custom_character_width = 6,                                       \
+				.custom_character_width = 5,                                       \
 				.custom_character_height = 8,                                      \
 			},                                                                         \
 		.reset_gpio = GPIO_DT_SPEC_GET(DT_DRV_INST(n), reset_gpios),                       \
@@ -733,11 +715,12 @@ static const struct auxdisplay_driver_api auxdisplay_ssd1803a_auxdisplay_api = {
 		.boost = !DT_INST_PROP_OR(n, disable_boost, false),                                \
 		.wide_font = false,                                                                \
 		.bias_divider = true,                                                              \
+		.user_blink = true,								   \
 		.bias = 3,                                                                         \
 		.dbl_height_fmt = 3,                                                               \
 		.osc_freq = 3,                                                                     \
 		.amp_ratio = 6,                                                                    \
-		.cgrom_idx = DT_INST_PROP_OR(n, character - set, 0),                               \
+		.cgrom_idx = DT_INST_PROP_OR(n, character_set, 0),                                 \
 		.cursor_x = 0,                                                                     \
 		.cursor_y = 0,                                                                     \
 	};                                                                                         \
