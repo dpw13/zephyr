@@ -36,3 +36,10 @@ config HAS_SEMTECH_SOFT_SE
 	help
 	  This option enables the use of Semtech's Secure Element
 	  software implementation
+
+config LORAMAC_SECURE_ELEMENT_PRE_PROVISIONED
+	bool "Secure Element pre-provisioned"
+	depends on HAS_SEMTECH_LORAMAC
+	help
+	  This option disables auto-provisioning of the secure element
+	  used by LoRaMAC.
