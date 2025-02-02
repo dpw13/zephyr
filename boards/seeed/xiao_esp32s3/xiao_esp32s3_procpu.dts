@@ -9,7 +9,7 @@
 #include "xiao_esp32s3_procpu_common.dtsi"
 #include "xiao_esp32s3-pinctrl.dtsi"
 #include "seeed_xiao_connector.dtsi"
-#include <espressif/partitions_0x0_amp.dtsi>
+#include <espressif/partitions_0x0_amp_8M.dtsi>
 
 / {
 	model = "Seeed Xiao ESP32S3 PROCPU";

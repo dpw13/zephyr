@@ -1,0 +1,5 @@
+config SHIELD_SEEED_XIAO_SX1262
+	def_bool $(shields_list_contains,seeed_xiao_sx1262)
+
+config SHIELD_SEEED_B2B_SX1262
+	def_bool $(shields_list_contains,seeed_b2b_sx1262)
