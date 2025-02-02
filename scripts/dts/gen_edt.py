@@ -51,7 +51,8 @@ def main():
                          werror=args.edtlib_Werror,
                          vendor_prefixes=vendor_prefixes)
     except edtlib.EDTError as e:
-        sys.exit(f"devicetree error: {e}")
+        raise
+        #sys.exit(f"devicetree error: {e}")
 
     # Save merged DTS source, as a debugging aid
     with open(args.dts_out, "w", encoding="utf-8") as f:

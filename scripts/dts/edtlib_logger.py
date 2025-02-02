@@ -29,5 +29,5 @@ def setup_edtlib_logging() -> None:
     handler.setFormatter(LogFormatter())
 
     logger = logging.getLogger('edtlib')
-    logger.setLevel(logging.WARNING)
+    logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
