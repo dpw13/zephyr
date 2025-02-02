@@ -91,7 +91,7 @@ static inline k_timeout_t clock_sync_calc_periodicity(void)
 }
 
 static void clock_sync_package_callback(uint8_t port, uint8_t flags, int16_t rssi, int8_t snr,
-					uint8_t len, const uint8_t *rx_buf)
+					uint8_t len, const uint8_t *rx_buf, void *unused)
 {
 	uint8_t tx_buf[3 * MAX_CLOCK_SYNC_ANS_LEN];
 	uint8_t tx_pos = 0;

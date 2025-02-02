@@ -193,7 +193,7 @@ static void mcps_indication_handler(McpsIndication_t *mcps_indication)
 		    (cb->port == mcps_indication->Port)) {
 			cb->cb(mcps_indication->Port, flags, mcps_indication->Rssi,
 			       mcps_indication->Snr, mcps_indication->BufferSize,
-			       mcps_indication->Buffer);
+			       mcps_indication->Buffer, cb->ctx);
 		}
 	}
 	k_mutex_unlock(&lorawan_cb_mutex);

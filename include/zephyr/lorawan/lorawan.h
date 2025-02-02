@@ -194,9 +194,12 @@ struct lorawan_downlink_cb {
 	 * @param snr Signal to Noise ratio in dBm
 	 * @param len Length of data received, will be 0 for ACKs
 	 * @param data Data received, will be NULL for ACKs
+	 * @param ctx Optional callback context
 	 */
 	void (*cb)(uint8_t port, uint8_t flags, int16_t rssi, int8_t snr, uint8_t len,
-		   const uint8_t *data);
+		   const uint8_t *data, void *ctx);
+	/** Optional context for callback */
+	void *ctx;
 	/** Node for callback list */
 	sys_snode_t node;
 };
