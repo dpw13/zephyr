@@ -1,0 +1,31 @@
+/*
+ * Copyright (c) 2022 Konstantinos Papadopoulos <kostas.papadopulos@gmail.com>
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	aliases {
+		lora0 = &lora_seeed_xiao_sx1262;
+	};
+};
+
+&xiao_spi {
+	status = "okay";
+
+	/* NSS is D3 on XIAO connector */
+	cs-gpios = <&xiao_d 3 GPIO_ACTIVE_LOW>;
+
+	lora_seeed_xiao_sx1262: sx1262@0 {
+		compatible = "semtech,sx1262";
+		reg = <0>;
+		spi-max-frequency = <16000000>;
+		label = "SX1262";
+		reset-gpios = <&xiao_d 2 GPIO_ACTIVE_LOW>;
+		busy-gpios = <&xiao_d 1 GPIO_ACTIVE_HIGH>;
+		antenna-enable-gpios = <&xiao_d 4 GPIO_ACTIVE_HIGH>;
+		dio1-gpios = <&xiao_d 0 GPIO_ACTIVE_HIGH>;
+		dio2-tx-enable;
+		tcxo-power-startup-delay-ms = <5>;
+		status = "okay";
+	};
+};

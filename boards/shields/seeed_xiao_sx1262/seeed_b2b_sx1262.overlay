@@ -1,0 +1,45 @@
+/*
+ * Copyright (c) 2022 Konstantinos Papadopoulos <kostas.papadopulos@gmail.com>
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <dt-bindings/lora/sx126x.h>
+
+/ {
+	aliases {
+		lora0 = &lora_seeed_b2b_sx1262;
+	};
+};
+
+&xiao_spi {
+	status = "okay";
+
+        /* Note that the pin numbers on J3 of the Wio-SX1262 schematic
+         * do NOT line up with the pin numbers on J3 of the ESP32S3
+         * schematic. The pin numbers correspond to the ESP32S3 schematic
+         * and not the Wio-SX1262 schematic.
+         */
+	cs-gpios = <&xiao_b2b 26 GPIO_ACTIVE_LOW>;
+
+        /**
+         * RF_SW1 23
+         * DIO1 24
+         * ...
+         */
+	lora_seeed_b2b_sx1262: sx1262@0 {
+		compatible = "semtech,sx1262";
+		reg = <0>;
+		/* Running at 16 MHz seems to result in a lot of runt frames */
+		spi-max-frequency = <12000000>;
+		label = "SX1262";
+		reset-gpios = <&xiao_b2b 27 GPIO_ACTIVE_LOW>;
+		busy-gpios = <&xiao_b2b 25 GPIO_ACTIVE_HIGH>;
+		rx-enable-gpios = <&xiao_b2b 23 GPIO_ACTIVE_HIGH>;
+		dio1-gpios = <&xiao_b2b 24 GPIO_ACTIVE_HIGH>;
+		dio2-tx-enable;
+		/* 2.4V here is a total guess */
+		dio3-tcxo-voltage = <SX126X_DIO3_TCXO_2V4>;
+		tcxo-power-startup-delay-ms = <10>;
+		status = "okay";
+	};
+};
