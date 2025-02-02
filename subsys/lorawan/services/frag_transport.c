@@ -68,6 +68,8 @@ struct frag_transport_context {
 	uint16_t nb_frag;
 	/** Number of fragments received in this session (including coded, uncoded and repeated) */
 	uint16_t nb_frag_received;
+	/** Last fragment index received */
+	uint16_t last_frag_idx;
 	/** Size of each fragment in octets */
 	uint8_t frag_size;
 	union {
@@ -102,7 +104,7 @@ static struct frag_transport_context ctx;
 static void (*finished_cb)(void);
 
 static void frag_transport_package_callback(uint8_t port, uint8_t flags, int16_t rssi, int8_t snr,
-					    uint8_t len, const uint8_t *rx_buf)
+					    uint8_t len, const uint8_t *rx_buf, void *unused)
 {
 	uint8_t tx_buf[FRAG_TRANSPORT_MAX_CMDS_PER_PACKAGE * FRAG_TRANSPORT_MAX_ANS_LEN];
 	uint8_t tx_pos = 0;
@@ -283,6 +285,7 @@ static void frag_transport_package_callback(uint8_t port, uint8_t flags, int16_t
 			LOG_INF("DataFragment %u of %u (%u lost), session: %u, decoder result: %d",
 				frag_counter, ctx.nb_frag, frag_counter - ctx.nb_frag_received,
 				index, decoder_process_status);
+			ctx.last_frag_idx = frag_counter;
 
 			if (decoder_process_status >= 0) {
 				/* Positive status corresponds to number of lost (but recovered)
