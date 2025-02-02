@@ -250,7 +250,7 @@ static int modbus_rtu_rx_adu(struct modbus_context *ctx)
 	/* Is the message long enough? */
 	if ((cfg->uart_buf_ctr < MODBUS_RTU_MIN_MSG_SIZE) ||
 	    (cfg->uart_buf_ctr > CONFIG_MODBUS_BUFFER_SIZE)) {
-		LOG_WRN("Frame length error");
+		LOG_WRN("Frame length error: %d B need %d", cfg->uart_buf_ctr, MODBUS_RTU_MIN_MSG_SIZE);
 		return -EMSGSIZE;
 	}
 
@@ -270,7 +270,7 @@ static int modbus_rtu_rx_adu(struct modbus_context *ctx)
 			      cfg->uart_buf_ctr - sizeof(ctx->rx_adu.crc));
 
 	if (ctx->rx_adu.crc != calc_crc) {
-		LOG_WRN("Calculated CRC does not match received CRC");
+		LOG_HEXDUMP_WRN(cfg->uart_buf, cfg->uart_buf_ctr, "Calculated CRC does not match received CRC");
 		return -EIO;
 	}
 
@@ -393,7 +393,6 @@ static void uart_cb_handler(const struct device *dev, void *app_data)
 	}
 
 	if (uart_irq_update(dev) && uart_irq_is_pending(dev)) {
-
 		if (uart_irq_rx_ready(dev)) {
 			cb_handler_rx(ctx);
 		}
