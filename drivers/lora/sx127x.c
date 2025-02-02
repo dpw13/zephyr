@@ -257,6 +257,7 @@ static inline void sx127x_pa_boost_enable(int val)
 
 void SX127xSetAntSwLowPower(bool low_power)
 {
+	LOG_DBG("%d", low_power);
 	if (low_power) {
 		/* force inactive (low power) state of all antenna paths */
 		sx127x_rfi_enable(0);
@@ -296,6 +297,7 @@ void SX127xSetBoardTcxo(uint8_t state)
 
 void SX127xSetAntSw(uint8_t opMode)
 {
+	LOG_DBG("%d", opMode);
 	switch (opMode) {
 	case RFLR_OPMODE_TRANSMITTER:
 		sx127x_rfi_enable(0);
@@ -451,6 +453,8 @@ void SX127xSetRfTxPower(int8_t power)
 	int ret;
 	uint8_t pa_config = 0;
 	uint8_t pa_dac = 0;
+
+	LOG_DBG("SX127xSetRfTxPower %d", power);
 
 	ret = sx127x_read(REG_PADAC, &pa_dac, 1);
 	if (ret < 0) {

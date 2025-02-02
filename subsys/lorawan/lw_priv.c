@@ -67,6 +67,8 @@ static const char *const eventinfo2str[] = {
 	[LORAMAC_EVENT_INFO_STATUS_BEACON_LOCKED] = "Beacon locked",
 	[LORAMAC_EVENT_INFO_STATUS_BEACON_LOST] = "Beacon lost",
 	[LORAMAC_EVENT_INFO_STATUS_BEACON_NOT_FOUND] = "Beacon not found",
+	//[LORAMAC_EVENT_INFO_STATUS_SMALL_FRAME] = "Runt frame",
+	//[LORAMAC_EVENT_INFO_STATUS_VERSION_MISMATCH] = "Version mismatch",
 };
 
 const char *lorawan_eventinfo2str(unsigned int status)

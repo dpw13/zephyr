@@ -189,10 +189,10 @@ uint8_t SX126xReadCommand(RadioCommands_t opcode,
 
 	uint8_t rx_req[sizeof(tx_req)];
 
-	LOG_DBG("Issuing opcode 0x%x (data size: %" PRIx16 ")",
-		opcode, size);
 	sx126x_spi_transceive(tx_req, rx_req, sizeof(rx_req),
 			      NULL, buffer, size);
+	LOG_DBG("Issued opcode 0x%x (data size: %" PRIx16 ")",
+		opcode, size);
 	LOG_DBG("-> status: 0x%" PRIx8, rx_req[1]);
 	return rx_req[1];
 }
@@ -203,9 +203,9 @@ void SX126xWriteCommand(RadioCommands_t opcode, uint8_t *buffer, uint16_t size)
 		opcode,
 	};
 
-	LOG_DBG("Issuing opcode 0x%x w. %" PRIu16 " bytes of data",
-		opcode, size);
 	sx126x_spi_transceive(req, NULL, sizeof(req), buffer, NULL, size);
+	LOG_DBG("Issued opcode 0x%x w. %" PRIu16 " bytes of data",
+		opcode, size);
 }
 
 void SX126xReadBuffer(uint8_t offset, uint8_t *buffer, uint8_t size)
@@ -228,9 +228,9 @@ void SX126xWriteBuffer(uint8_t offset, uint8_t *buffer, uint8_t size)
 		offset,
 	};
 
-	LOG_DBG("Writing buffers @ 0x%" PRIx8 " (%" PRIu8 " bytes)",
-		offset, size);
 	sx126x_spi_transceive(req, NULL, sizeof(req), buffer, NULL, size);
+	LOG_DBG("Wrote buffers @ 0x%" PRIx8 " (%" PRIu8 " bytes)",
+		offset, size);
 }
 
 void SX126xAntSwOn(void)
@@ -263,6 +263,7 @@ static void sx126x_set_tx_enable(int value)
 static void sx126x_set_rx_enable(int value)
 {
 #if HAVE_GPIO_RX_ENABLE
+	LOG_DBG("sx126x_set_rx_enable %d", value);
 	gpio_pin_set_dt(&dev_config.rx_enable, value);
 #endif
 }
@@ -286,6 +287,7 @@ void SX126xSetOperatingMode(RadioOperatingModes_t mode)
 	case MODE_TX:
 		sx126x_set_rx_enable(0);
 		sx126x_set_tx_enable(1);
+		SX126xClearDeviceErrors();
 		break;
 
 	case MODE_RX:
@@ -293,6 +295,7 @@ void SX126xSetOperatingMode(RadioOperatingModes_t mode)
 	case MODE_CAD:
 		sx126x_set_tx_enable(0);
 		sx126x_set_rx_enable(1);
+		SX126xClearDeviceErrors();
 		break;
 
 	case MODE_SLEEP:
@@ -329,7 +332,7 @@ void SX126xIoTcxoInit(void)
 		.Value = SX126X_CALIBRATION_ALL,
 	};
 
-	LOG_DBG("TCXO on DIO3");
+	LOG_INF("TCXO on DIO3");
 
 	/* Delay in units of 15.625 us (1/64 ms) */
 	SX126xSetDio3AsTcxoCtrl(TCXO_DIO3_VOLTAGE,
@@ -364,8 +367,13 @@ void SX126xSetRfTxPower(int8_t power)
 
 void SX126xWaitOnBusy(void)
 {
-	while (sx126x_is_busy(&dev_data)) {
+	uint16_t i = 0;
+	while (sx126x_is_busy(&dev_data) && i < 1000) {
 		k_sleep(K_MSEC(1));
+		i++;
+	}
+	if (i == 1000) {
+		LOG_ERR("Radio did not deassert busy");
 	}
 }
 
@@ -433,7 +441,8 @@ static int sx126x_lora_init(const struct device *dev)
 	const struct sx126x_config *config = dev->config;
 	int ret;
 
-	LOG_DBG("Initializing sx126x");
+	LOG_DBG("Initializing sx126x %s", dev->name);
+	memset(&dev_data, 0, sizeof(dev_data));
 
 	if (sx12xx_configure_pin(antenna_enable, GPIO_OUTPUT_INACTIVE) ||
 	    sx12xx_configure_pin(rx_enable, GPIO_OUTPUT_INACTIVE) ||

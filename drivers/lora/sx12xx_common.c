@@ -205,6 +205,7 @@ int sx12xx_lora_send(const struct device *dev, uint8_t *data,
 
 	/* Validate that we have a TX configuration */
 	if (!dev_data.tx_cfg.frequency) {
+		LOG_ERR("No tx_cfg frequency");
 		return -EINVAL;
 	}
 
@@ -229,7 +230,7 @@ int sx12xx_lora_send(const struct device *dev, uint8_t *data,
 	 */
 	ret = k_poll(&evt, 1, K_MSEC(2 * air_time));
 	if (ret < 0) {
-		LOG_ERR("Packet transmission failed!");
+		LOG_ERR("Packet transmission failed: %d", ret);
 		if (!modem_release(&dev_data)) {
 			/* TX done interrupt is currently running */
 			k_poll(&evt, 1, K_FOREVER);
@@ -335,7 +336,7 @@ int sx12xx_lora_recv_async(const struct device *dev, lora_recv_cb cb, void *user
 }
 
 int sx12xx_lora_config(const struct device *dev,
-		       struct lora_modem_config *config)
+		       const struct lora_modem_config *config)
 {
 	/* Ensure available, decremented after configuration */
 	if (!modem_acquire(&dev_data)) {
@@ -345,6 +346,7 @@ int sx12xx_lora_config(const struct device *dev,
 	Radio.SetChannel(config->frequency);
 
 	if (config->tx) {
+		LOG_DBG("Configuring TX");
 		/* Store TX config locally for airtime calculations */
 		memcpy(&dev_data.tx_cfg, config, sizeof(dev_data.tx_cfg));
 		/* Configure radio driver */
@@ -353,6 +355,7 @@ int sx12xx_lora_config(const struct device *dev,
 				  config->coding_rate, config->preamble_len,
 				  false, true, 0, 0, config->iq_inverted, 4000);
 	} else {
+		LOG_DBG("Configuring RX");
 		/* TODO: Get symbol timeout value from config parameters */
 		Radio.SetRxConfig(MODEM_LORA, config->bandwidth,
 				  config->datarate, config->coding_rate,
@@ -382,6 +385,8 @@ int sx12xx_lora_test_cw(const struct device *dev, uint32_t frequency,
 int sx12xx_init(const struct device *dev)
 {
 	atomic_set(&dev_data.modem_usage, 0);
+
+	memset(&dev_data, 0, sizeof(dev_data));
 
 	dev_data.dev = dev;
 	dev_data.events.TxDone = sx12xx_ev_tx_done;

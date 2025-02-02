@@ -60,6 +60,7 @@ K_SEM_DEFINE(mcps_confirm_sem, 0, 1);
 
 K_MUTEX_DEFINE(lorawan_join_mutex);
 K_MUTEX_DEFINE(lorawan_send_mutex);
+K_MUTEX_DEFINE(lorawan_cb_mutex);
 
 /* lorawan flags: store lorawan states */
 enum {
@@ -160,8 +161,13 @@ static void mcps_indication_handler(McpsIndication_t *mcps_indication)
 	LOG_DBG("Received McpsIndication %d", mcps_indication->McpsIndication);
 
 	if (mcps_indication->Status != LORAMAC_EVENT_INFO_STATUS_OK) {
-		LOG_ERR("McpsIndication failed : %s",
-			lorawan_eventinfo2str(mcps_indication->Status));
+		if (false) { //mcps_indication->Status == LORAMAC_EVENT_INFO_STATUS_SMALL_FRAME) {
+			LOG_WRN("Ignoring runt frame");
+		} else {
+			/* Small frame messages appear to be harmless */
+			LOG_ERR("McpsIndication failed : %s (%d)",
+				lorawan_eventinfo2str(mcps_indication->Status), mcps_indication->Status);
+		}
 		return;
 	}
 
@@ -181,6 +187,7 @@ static void mcps_indication_handler(McpsIndication_t *mcps_indication)
 	flags |= (mcps_indication->DeviceTimeAnsReceived ? LORAWAN_TIME_UPDATED : 0);
 
 	/* Iterate over all registered downlink callbacks */
+	k_mutex_lock(&lorawan_cb_mutex, K_FOREVER);
 	SYS_SLIST_FOR_EACH_CONTAINER(&dl_callbacks, cb, node) {
 		if ((cb->port == LW_RECV_PORT_ANY) ||
 		    (cb->port == mcps_indication->Port)) {
@@ -189,6 +196,7 @@ static void mcps_indication_handler(McpsIndication_t *mcps_indication)
 			       mcps_indication->Buffer);
 		}
 	}
+	k_mutex_unlock(&lorawan_cb_mutex);
 
 	last_mcps_indication_status = mcps_indication->Status;
 }
@@ -527,7 +535,7 @@ int lorawan_set_class(enum lorawan_class dev_class)
 		mib_req.Param.Class = CLASS_A;
 		break;
 	case LORAWAN_CLASS_B:
-		LOG_ERR("Class B not supported yet!");
+		mib_req.Param.Class = CLASS_B;
 		return -ENOTSUP;
 	case LORAWAN_CLASS_C:
 		mib_req.Param.Class = CLASS_C;
@@ -649,6 +657,7 @@ int lorawan_send(uint8_t port, uint8_t *data, uint8_t len,
 	bool empty_frame = false;
 
 	if (data == NULL && len > 0) {
+		LOG_ERR("Non-empty data must not be null");
 		return -EINVAL;
 	}
 
@@ -701,6 +710,7 @@ int lorawan_send(uint8_t port, uint8_t *data, uint8_t len,
 	 */
 	k_sem_take(&mcps_confirm_sem, K_FOREVER);
 	if (last_mcps_confirm_status != LORAMAC_EVENT_INFO_STATUS_OK) {
+		LOG_WRN("LoRaWAN reported mcps error: %s", lorawan_eventinfo2str(last_mcps_confirm_status));
 		ret = lorawan_eventinfo2errno(last_mcps_confirm_status);
 	}
 
@@ -722,9 +732,11 @@ void lorawan_register_battery_level_callback(lorawan_battery_level_cb_t cb)
 	battery_level_cb = cb;
 }
 
-void lorawan_register_downlink_callback(struct lorawan_downlink_cb *cb)
+void lorawan_register_downlink_callback(const struct lorawan_downlink_cb *cb)
 {
-	sys_slist_append(&dl_callbacks, &cb->node);
+	k_mutex_lock(&lorawan_cb_mutex, K_FOREVER);
+	sys_slist_append(&dl_callbacks, (sys_snode_t *)&cb->node);
+	k_mutex_unlock(&lorawan_cb_mutex);
 }
 
 void lorawan_register_dr_changed_callback(lorawan_dr_changed_cb_t cb)
@@ -777,8 +789,9 @@ int lorawan_start(void)
 
 static int lorawan_init(void)
 {
-
+	k_mutex_lock(&lorawan_cb_mutex, K_FOREVER);
 	sys_slist_init(&dl_callbacks);
+	k_mutex_unlock(&lorawan_cb_mutex);
 
 	mac_primitives.MacMcpsConfirm = mcps_confirm_handler;
 	mac_primitives.MacMcpsIndication = mcps_indication_handler;

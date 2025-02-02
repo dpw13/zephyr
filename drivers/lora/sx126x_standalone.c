@@ -70,6 +70,12 @@ int sx126x_variant_init(const struct device *dev)
 {
 	struct sx126x_data *dev_data = dev->data;
 
+	//LOG_DBG("busy: %s.%d", sx126x_gpio_busy.port->name, sx126x_gpio_busy.pin);
+	//LOG_DBG("reset: %s.%d", sx126x_gpio_reset.port->name, sx126x_gpio_reset.pin);
+	//LOG_DBG("dio1: %s.%d", sx126x_gpio_dio1.port->name, sx126x_gpio_dio1.pin);
+
+	LOG_INF("init %s data %p", dev->name, dev_data);
+
 	if (gpio_pin_configure_dt(&sx126x_gpio_reset, GPIO_OUTPUT_ACTIVE) ||
 	    gpio_pin_configure_dt(&sx126x_gpio_busy, GPIO_INPUT) ||
 	    gpio_pin_configure_dt(&sx126x_gpio_dio1, GPIO_INPUT)) {
