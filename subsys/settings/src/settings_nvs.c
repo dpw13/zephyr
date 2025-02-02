@@ -47,6 +47,7 @@ static ssize_t settings_nvs_read_fn(void *back_end, void *data, size_t len)
 
 	rd_fn_arg = (struct settings_nvs_read_fn_arg *)back_end;
 
+	LOG_DBG("id %x", rd_fn_arg->id);
 	rc = nvs_read(rd_fn_arg->fs, rd_fn_arg->id, data, len);
 	if (rc > (ssize_t)len) {
 		/* nvs_read signals that not all bytes were read
@@ -138,6 +139,7 @@ static int settings_nvs_load(struct settings_store *cs,
 #endif
 
 	name_id = cf->last_name_id + 1;
+	LOG_DBG("Last name id is %x", cf->last_name_id);
 
 	while (1) {
 
@@ -150,6 +152,7 @@ static int settings_nvs_load(struct settings_store *cs,
 			break;
 		}
 
+		LOG_DBG("Looking for name_id %x", name_id);
 		/* In the NVS backend, each setting item is stored in two NVS
 		 * entries one for the setting's name and one with the
 		 * setting's value.
@@ -257,6 +260,7 @@ static int settings_nvs_save(struct settings_store *cs, const char *name,
 			break;
 		}
 
+		LOG_DBG("Searching for key %s = id %x", name, name_id);
 		rc = nvs_read(&cf->cf_nvs, name_id, &rdname, sizeof(rdname));
 
 		if (rc < 0) {
@@ -369,6 +373,8 @@ int settings_nvs_backend_init(struct settings_nvs *cf)
 	if (rc) {
 		return rc;
 	}
+	nvs_clear(&cf->cf_nvs);
+	nvs_mount(&cf->cf_nvs);
 
 	rc = nvs_read(&cf->cf_nvs, NVS_NAMECNT_ID, &last_name_id,
 		      sizeof(last_name_id));
@@ -378,7 +384,7 @@ int settings_nvs_backend_init(struct settings_nvs *cf)
 		cf->last_name_id = last_name_id;
 	}
 
-	LOG_DBG("Initialized");
+	LOG_DBG("Initialized with %d keys", cf->last_name_id - NVS_NAMECNT_ID);
 	return 0;
 }
 
