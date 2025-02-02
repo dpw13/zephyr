@@ -32,6 +32,7 @@ include(extensions)
 function(pre_dt_module_run)
   # Convert relative paths to absolute paths relative to the application
   # source directory.
+  zephyr_get(DTS_ROOT MERGE)
   zephyr_file(APPLICATION_ROOT DTS_ROOT)
 
   # DTS_ROOT always includes the application directory, the board
@@ -52,6 +53,7 @@ function(pre_dt_module_run)
   # scripts/zephyr_module.py --settings-out resolve them.
   unset(real_dts_root)
   foreach(dts_dir ${DTS_ROOT})
+    message(STATUS "Checking DTS root ${dts_dir}")
     file(REAL_PATH ${dts_dir} real_dts_dir)
     list(APPEND real_dts_root ${real_dts_dir})
   endforeach()
