@@ -235,7 +235,7 @@ static void multicast_package_callback(uint8_t port, uint8_t flags, int16_t rssi
 					tx_buf[tx_pos++] = (1U << 5) | status;
 				}
 			} else {
-				LOG_ERR("McClassCSessionReq failed: %s", lorawan_status2str(ret));
+				LOG_ERR("McClassCSessionReq failed: %s remaining status: %02x", lorawan_status2str(ret), status);
 				if (ret == LORAMAC_STATUS_MC_GROUP_UNDEFINED) {
 					/* set McGroupUndefined flag */
 					tx_buf[tx_pos++] = (1U << 4) | status;

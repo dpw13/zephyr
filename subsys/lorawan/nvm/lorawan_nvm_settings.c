@@ -67,7 +67,7 @@ static void lorawan_nvm_save_settings(uint16_t nvm_notify_flag)
 			&nvm_setting_descriptors[i];
 
 		if ((nvm_notify_flag & descr->flag) == descr->flag) {
-			LOG_DBG("Saving configuration %s", descr->setting_name);
+			LOG_DBG("Saving configuration %s %d B", descr->setting_name, descr->size);
 			int err = settings_save_one(descr->setting_name,
 						(char *)nvm + descr->offset,
 						descr->size);
@@ -107,8 +107,14 @@ static int load_setting(void *tgt, size_t tgt_size,
 			key);
 		return -EINVAL;
 	}
-
-	return 0;
+	uint8_t *ptr = tgt;
+	for (int i=0; i<len; i++) {
+		if (*ptr++ != 0xFF) {
+			return 0;
+		}
+	}
+	LOG_DBG("Setting %s corrupted?", key);
+	return -EINVAL;
 }
 
 static int on_setting_loaded(const char *key, size_t len,
@@ -129,6 +135,7 @@ static int on_setting_loaded(const char *key, size_t len,
 				descr->size, key, len, read_cb, cb_arg);
 			if (err) {
 				LOG_ERR("Could not read setting %s", descr->name);
+				settings_delete(key);
 			}
 			return err;
 		}
@@ -165,6 +172,12 @@ int lorawan_nvm_data_restore(void)
 		mib_req.Param.Contexts->Crypto.LrWanVersion.Value,
 		mib_req.Param.Contexts->Crypto.DevNonce,
 		mib_req.Param.Contexts->Crypto.JoinNonce);
+
+	if (mib_req.Param.Contexts->Crypto.LrWanVersion.Value == 0xFFFFFFFF) {
+		/* TODO: settings are getting corrupted somehow. Rewrite them. */
+		LOG_ERR("Settings corrupted!");
+		return -EINVAL;
+	}
 
 	mib_req.Type = MIB_NVM_CTXS;
 	status = LoRaMacMibSetRequestConfirm(&mib_req);

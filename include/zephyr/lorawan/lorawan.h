@@ -234,7 +234,7 @@ void lorawan_register_battery_level_callback(lorawan_battery_level_cb_t cb);
  *
  * @param cb Pointer to structure containing callback parameters
  */
-void lorawan_register_downlink_callback(struct lorawan_downlink_cb *cb);
+void lorawan_register_downlink_callback(const struct lorawan_downlink_cb *cb);
 
 /**
  * @brief Register a callback to be called when the datarate changes
