@@ -1393,6 +1393,7 @@ class DT:
             phandle_i = 1
             while phandle_i in self.phandle2node:
                 phandle_i += 1
+            #print(f"Registering phandle {phandle_i} = {node.labels}")
             self.phandle2node[phandle_i] = node
 
             phandle_prop.value = phandle_i.to_bytes(4, "big")
@@ -1738,6 +1739,7 @@ class DT:
         # when nodes are deleted
         for node in self.node_iter():
             if s in node.labels:
+                #print(f"Label {s} -> {node}")
                 return node
 
         _err(f"undefined node label '{s}'")
@@ -1788,7 +1790,6 @@ class DT:
                         _err(f"{node.path}: duplicated phandle {phandle_val:#x} "
                              "(seen before at "
                              f"{self.phandle2node[phandle_val].path})")
-
                     self.phandle2node[phandle_val] = node
 
     def _fixup_props(self):

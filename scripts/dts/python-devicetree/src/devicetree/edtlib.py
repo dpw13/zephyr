@@ -3153,9 +3153,11 @@ def _phandle_val_list(
         if len(raw) < 4:
             # Not enough room for phandle
             _err("bad value for " + repr(prop))
-        phandle = to_num(raw[:4])
+        phandle_raw = raw[:4]
+        phandle = to_num(phandle_raw)
         raw = raw[4:]
 
+        #print(f"Looking up phandle {phandle} from {prop.node.path} = {prop}")
         node = prop.node.dt.phandle2node.get(phandle)
         if not node:
             # Unspecified phandle-array element. This is valid; a 0
@@ -3164,7 +3166,7 @@ def _phandle_val_list(
             continue
 
         if full_n_cells_name not in node.props:
-            _err(f"{node!r} lacks {full_n_cells_name}")
+            _err(f"{node!r} lacks {full_n_cells_name} in {prop!r} {phandle_raw}")
 
         n_cells = node.props[full_n_cells_name].to_num()
         if len(raw) < 4*n_cells:
