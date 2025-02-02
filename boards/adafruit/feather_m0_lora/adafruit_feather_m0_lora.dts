@@ -20,7 +20,7 @@
 		zephyr,shell-uart = &sercom0;
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
-		zephyr,code-partition = &code_partition;
+		/* zephyr,code-partition = &code_partition; */
 	};
 
 	/* These aliases are provided for compatibility with samples */
@@ -92,31 +92,10 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 
-		boot_partition: partition@0 {
-			label = "sam-ba";
-			reg = <0x00000000 DT_SIZE_K(8)>;
-			read-only;
-		};
-
-		code_partition: partition@2000 {
-			label = "code";
-			reg = <0x2000 DT_SIZE_K(232)>;
-			read-only;
-		};
-
-		/*
-		 * The final 16 KiB is reserved for the application.
-		 * Storage partition will be used by FCB/LittleFS/NVS
-		 * if enabled.
-		 */
-		storage_partition: partition@3c000 {
-			label = "storage";
-			reg = <0x0003c000 DT_SIZE_K(16)>;
-		};
 	};
 };
 
-&usb0 {
+zephyr_udc0: &usb0 {
 	status = "okay";
 
 	pinctrl-0 = <&usb_dc_default>;
