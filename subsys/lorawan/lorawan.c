@@ -128,7 +128,7 @@ static void datarate_observe(bool force_notification)
 		if (dr_changed_cb != NULL) {
 			dr_changed_cb(current_datarate);
 		}
-		LOG_INF("Datarate changed: DR_%d", current_datarate);
+		LOG_DBG("Datarate changed: DR_%d", current_datarate);
 	}
 }
 
@@ -222,10 +222,10 @@ static void mlme_confirm_handler(MlmeConfirm_t *mlme_confirm)
 		break;
 	case MLME_LINK_CHECK:
 		/* Not implemented */
-		LOG_INF("Link check not implemented yet!");
+		LOG_WRN("Link check not implemented yet!");
 		break;
 	case MLME_DEVICE_TIME:
-		LOG_INF("DevTimeReq done");
+		LOG_DBG("DevTimeReq done");
 		break;
 	default:
 		break;

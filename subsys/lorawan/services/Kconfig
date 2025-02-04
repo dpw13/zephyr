@@ -32,6 +32,12 @@ config LORAWAN_SERVICES_THREAD_PRIORITY
 	help
 	  Priority of the thread running LoRaWAN background services.
 
+config LORAWAN_SERVICES_MAX_UPLINK_SIZE
+	int "Services uplink message size"
+	default 18
+	help
+	  Maximum uplink message size supported by lorawan_services_schedule_uplink.
+
 config LORAWAN_APP_CLOCK_SYNC
 	bool "Application Layer Clock Synchronization"
 	help
