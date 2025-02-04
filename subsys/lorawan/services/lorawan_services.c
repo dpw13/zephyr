@@ -18,7 +18,7 @@ struct service_uplink_msg {
 	/* absolute ticks when this message should be scheduled */
 	int64_t ticks;
 	/* sufficient space for up to 3 answers (max 6 bytes each) */
-	uint8_t data[18];
+	uint8_t data[CONFIG_LORAWAN_SERVICES_MAX_UPLINK_SIZE];
 	uint8_t len;
 	uint8_t port;
 	bool used;
@@ -120,7 +120,7 @@ int lorawan_services_schedule_uplink(uint8_t port, uint8_t *data, uint8_t len, u
 	struct service_uplink_msg *next;
 	int64_t timeout_abs_ticks;
 
-	if (len > sizeof(messages[0].data)) {
+	if (len > CONFIG_LORAWAN_SERVICES_MAX_UPLINK_SIZE) {
 		LOG_ERR("Uplink payload for port %u too long: %u bytes", port, len);
 		LOG_HEXDUMP_ERR(data, len, "Payload: ");
 		return -EFBIG;
