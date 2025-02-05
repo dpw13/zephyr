@@ -373,8 +373,8 @@ int settings_nvs_backend_init(struct settings_nvs *cf)
 	if (rc) {
 		return rc;
 	}
-	nvs_clear(&cf->cf_nvs);
-	nvs_mount(&cf->cf_nvs);
+	//nvs_clear(&cf->cf_nvs);
+	//nvs_mount(&cf->cf_nvs);
 
 	rc = nvs_read(&cf->cf_nvs, NVS_NAMECNT_ID, &last_name_id,
 		      sizeof(last_name_id));
