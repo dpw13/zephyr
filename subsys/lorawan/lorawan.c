@@ -94,6 +94,10 @@ static enum lorawan_channels_mask_size region_channels_mask_size =
 
 static lorawan_battery_level_cb_t battery_level_cb;
 static lorawan_dr_changed_cb_t dr_changed_cb;
+#ifdef CONFIG_LORAMAC_CLASSB_ENABLED
+static lorawan_temp_compensation_cb_t temp_compensation_cb;
+static lorawan_get_temp_cb_t temperature_cb;
+#endif
 
 /* implementation required by the soft-se (software secure element) */
 void BoardGetUniqueId(uint8_t *id)
@@ -536,8 +540,12 @@ int lorawan_set_class(enum lorawan_class dev_class)
 		break;
 	case LORAWAN_CLASS_B:
 		mib_req.Param.Class = CLASS_B;
+#ifdef CONFIG_LORAMAC_CLASSB_ENABLED
+		break;
+#else
 		return -ENOTSUP;
-	case LORAWAN_CLASS_C:
+#endif
+		case LORAWAN_CLASS_C:
 		mib_req.Param.Class = CLASS_C;
 		break;
 	default:
@@ -646,6 +654,26 @@ int lorawan_set_conf_msg_tries(uint8_t tries)
 
 	return 0;
 }
+
+#ifdef CONFIG_LORAMAC_CLASSB_ENABLED
+TimerTime_t RtcTempCompensation(TimerTime_t period, float temperature) {
+	if (temp_compensation_cb != NULL) {
+		return temp_compensation_cb(period, temperature);
+	} else {
+		/* Return uncompensated time */
+		return period;
+	}
+}
+
+static float get_temperature(void)
+{
+	if (temperature_cb != NULL) {
+		return temperature_cb();
+	} else {
+		return 0.0;
+	}
+}
+#endif
 
 int lorawan_send(uint8_t port, uint8_t *data, uint8_t len,
 		 enum lorawan_message_type type)
@@ -798,7 +826,11 @@ static int lorawan_init(void)
 	mac_primitives.MacMlmeConfirm = mlme_confirm_handler;
 	mac_primitives.MacMlmeIndication = mlme_indication_handler;
 	mac_callbacks.GetBatteryLevel = get_battery_level;
+#ifdef CONFIG_LORAMAC_CLASSB_ENABLED
+	mac_callbacks.GetTemperatureLevel = get_temperature;
+#else
 	mac_callbacks.GetTemperatureLevel = NULL;
+#endif
 
 	if (IS_ENABLED(CONFIG_LORAWAN_NVM_NONE)) {
 		mac_callbacks.NvmDataChange = NULL;

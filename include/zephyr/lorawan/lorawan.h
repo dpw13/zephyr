@@ -214,6 +214,22 @@ struct lorawan_downlink_cb {
 typedef uint8_t (*lorawan_battery_level_cb_t)(void);
 
 /**
+ * @brief TCXO callback
+ *
+ * @retval The adjusted time in ms
+ * @param time_ms The time interval to adjust in ms
+ * @param temp The current temperature as returned by lorawan_get_temperature callback
+ */
+typedef uint32_t (*lorawan_temp_compensation_cb_t)(uint32_t time_ms, float temp);
+
+/**
+ * @brief Temperature callback
+ *
+ * @retval The current temperature
+ */
+typedef float (*lorawan_get_temp_cb_t)( void );
+
+/**
  * @brief Defines the datarate changed callback handler function signature.
  *
  * @param dr Updated datarate.
