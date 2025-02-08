@@ -43,3 +43,7 @@ config LORAMAC_SECURE_ELEMENT_PRE_PROVISIONED
 	help
 	  This option disables auto-provisioning of the secure element
 	  used by LoRaMAC.
+
+config LORAMAC_CLASSB_ENABLED
+	bool "Enable Class B support"
+	depends on HAS_SEMTECH_LORAMAC
