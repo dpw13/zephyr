@@ -2,7 +2,9 @@ description: Atmel SAM0 watchdog
 
 compatible: "atmel,sam0-watchdog"
 
-include: base.yaml
+include:
+  - name: base.yaml
+  - name: atmel,assigned-clocks.yaml
 
 properties:
   reg:

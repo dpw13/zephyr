@@ -21,6 +21,10 @@
 			compatible = "atmel,sam0-usb";
 			reg = <0x41005000 0x1000>;
 			interrupts = <7 0>;
+			clocks = <&gclk 0x06>;
+			clock-names = "GCLK";
+			atmel,assigned-clocks = <&gclk 0>;
+			atmel,assigned-clock-names = "GCLK";
 			status = "disabled";
 
 			num-bidir-endpoints = <8>;
@@ -33,17 +37,6 @@
 			status = "disabled";
 
 			#dma-cells = <2>;
-		};
-
-		tc6: tc@42003800 {
-			compatible = "atmel,sam0-tc32";
-			reg = <0x42003800 0x20>;
-			interrupts = <21 0>;
-			clocks = <&gclk 0x1d>, <&pm 0x20 14>;
-			clock-names = "GCLK", "PM";
-			atmel,assigned-clocks = <&gclk 0>;
-			atmel,assigned-clock-names = "GCLK";
-			status = "disabled";
 		};
 
 		tcc0: tcc@42002000 {
@@ -87,7 +80,80 @@
 			channels = <2>;
 			counter-size = <16>;
 		};
+
+		tcc3: tcc@42006000 {
+			/* Only supported in SAMD21x17D */
+			compatible = "atmel,sam0-tcc";
+			reg = <0x42006000 0x80>;
+			interrupts = <29 0>;
+			clocks = <&gclk 27>, <&pm 0x20 10>;
+			clock-names = "GCLK", "PM";
+			atmel,assigned-clocks = <&gclk 0>;
+			atmel,assigned-clock-names = "GCLK";
+			status = "disabled";
+
+			channels = <2>;
+			counter-size = <16>;
+		};
+
+		tc3: tc@42002c00 {
+			compatible = "atmel,sam0-tc32";
+			reg = <0x42002c00 0x20>;
+			interrupts = <18 0>;
+			clocks = <&gclk 0x1b>;
+			clock-names = "GCLK";
+			atmel,assigned-clocks = <&gclk 0>;
+			atmel,assigned-clock-names = "GCLK";
+			status = "disabled";
+		};
+
+		tc5: tc@42003400 {
+			compatible = "atmel,sam0-tc32";
+			reg = <0x42003400 0x20>;
+			interrupts = <20 0>;
+			clocks = <&gclk 0x1c>;
+			clock-names = "GCLK";
+			atmel,assigned-clocks = <&gclk 0>;
+			atmel,assigned-clock-names = "GCLK";
+			status = "disabled";
+		};
+
+		tc6: tc@42003800 {
+			compatible = "atmel,sam0-tc32";
+			reg = <0x42003800 0x20>;
+			interrupts = <21 0>;
+			clocks = <&gclk 0x1d>, <&pm 0x20 14>;
+			clock-names = "GCLK", "PM";
+			atmel,assigned-clocks = <&gclk 0>;
+			atmel,assigned-clock-names = "GCLK";
+			status = "disabled";
+		};
+
+		tc7: tc@42003c00 {
+			compatible = "atmel,sam0-tc32";
+			reg = <0x42003c00 0x20>;
+			interrupts = <22 0>;
+			clocks = <&gclk 0x1d>;
+			clock-names = "GCLK";
+			atmel,assigned-clocks = <&gclk 0>;
+			atmel,assigned-clock-names = "GCLK";
+			status = "disabled";
+		};
 	};
+};
+
+&wdog {
+	clocks = <&gclk 0x03>;
+	clock-names = "GCLK";
+	atmel,assigned-clocks = <&gclk 0>;
+	atmel,assigned-clock-names = "GCLK";
+};
+
+&eic {
+	clocks = <&gclk 0x05>;
+	clock-names = "GCLK";
+	atmel,assigned-clocks = <&gclk 0>;
+	atmel,assigned-clock-names = "GCLK";
 };
 
 &dac0 {

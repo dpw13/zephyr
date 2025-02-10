@@ -6,6 +6,7 @@ compatible: "atmel,sam0-usb"
 include:
   - name: usb-ep.yaml
   - name: pinctrl-device.yaml
+  - name: atmel,assigned-clocks.yaml
 
 properties:
   reg:

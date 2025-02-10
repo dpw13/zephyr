@@ -2,7 +2,9 @@ description: Atmel SAM0 series External Interrupt Controller
 
 compatible: "atmel,sam0-eic"
 
-include: base.yaml
+include:
+  - name: base.yaml
+  - name: atmel,assigned-clocks.yaml
 
 properties:
   reg:
