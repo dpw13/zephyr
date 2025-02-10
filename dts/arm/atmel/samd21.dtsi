@@ -21,10 +21,9 @@
 			compatible = "atmel,sam0-usb";
 			reg = <0x41005000 0x1000>;
 			interrupts = <7 0>;
-			clocks = <&gclk 0x06>;
-			clock-names = "GCLK";
-			atmel,assigned-clocks = <&gclk 0>;
-			atmel,assigned-clock-names = "GCLK";
+			clocks = <&gclk 0x06>, <&gclk_main>, <&pm MCLK_BUS_APBB 5>, <&pm MCLK_BUS_AHB 6>;
+			/*clock-names = "GCLK", "PM", "DMA";*/
+			clock-names = "GCLK", "periph", "PM", "master";
 			status = "disabled";
 
 			num-bidir-endpoints = <8>;
@@ -34,6 +33,8 @@
 			compatible = "atmel,sam0-dmac";
 			reg = <0x41004800 0x50>;
 			interrupts = <6 0>;
+			clocks = <&pm MCLK_BUS_APBB 4>, <&pm MCLK_BUS_AHB 5>;
+			clock-names = "PM", "master";
 			status = "disabled";
 
 			#dma-cells = <2>;
@@ -43,9 +44,9 @@
 			compatible = "atmel,sam0-tcc";
 			reg = <0x42002000 0x80>;
 			interrupts = <15 0>;
-			clocks = <&gclk 26>, <&pm 0x20 8>;
+			clocks = <&gclk 26>, <&pm MCLK_BUS_APBC 8>;
 			clock-names = "GCLK", "PM";
-			atmel,assigned-clocks = <&gclk 0>;
+			atmel,assigned-clocks = <&gclk_main>;
 			atmel,assigned-clock-names = "GCLK";
 			status = "disabled";
 
@@ -57,9 +58,9 @@
 			compatible = "atmel,sam0-tcc";
 			reg = <0x42002400 0x80>;
 			interrupts = <16 0>;
-			clocks = <&gclk 26>, <&pm 0x20 9>;
+			clocks = <&gclk 26>, <&pm MCLK_BUS_APBC 9>;
 			clock-names = "GCLK", "PM";
-			atmel,assigned-clocks = <&gclk 0>;
+			atmel,assigned-clocks = <&gclk_main>;
 			atmel,assigned-clock-names = "GCLK";
 			status = "disabled";
 
@@ -71,9 +72,9 @@
 			compatible = "atmel,sam0-tcc";
 			reg = <0x42002800 0x80>;
 			interrupts = <17 0>;
-			clocks = <&gclk 27>, <&pm 0x20 10>;
+			clocks = <&gclk 27>, <&pm MCLK_BUS_APBC 10>;
 			clock-names = "GCLK", "PM";
-			atmel,assigned-clocks = <&gclk 0>;
+			atmel,assigned-clocks = <&gclk_main>;
 			atmel,assigned-clock-names = "GCLK";
 			status = "disabled";
 
@@ -86,9 +87,9 @@
 			compatible = "atmel,sam0-tcc";
 			reg = <0x42006000 0x80>;
 			interrupts = <29 0>;
-			clocks = <&gclk 27>, <&pm 0x20 10>;
+			clocks = <&gclk 27>, <&pm MCLK_BUS_APBC 10>;
 			clock-names = "GCLK", "PM";
-			atmel,assigned-clocks = <&gclk 0>;
+			atmel,assigned-clocks = <&gclk_main>;
 			atmel,assigned-clock-names = "GCLK";
 			status = "disabled";
 
@@ -100,9 +101,9 @@
 			compatible = "atmel,sam0-tc32";
 			reg = <0x42002c00 0x20>;
 			interrupts = <18 0>;
-			clocks = <&gclk 0x1b>;
-			clock-names = "GCLK";
-			atmel,assigned-clocks = <&gclk 0>;
+			clocks = <&gclk 0x1b>, <&pm MCLK_BUS_APBC 11>;
+			clock-names = "GCLK", "PM";
+			atmel,assigned-clocks = <&gclk_main>;
 			atmel,assigned-clock-names = "GCLK";
 			status = "disabled";
 		};
@@ -111,9 +112,9 @@
 			compatible = "atmel,sam0-tc32";
 			reg = <0x42003400 0x20>;
 			interrupts = <20 0>;
-			clocks = <&gclk 0x1c>;
-			clock-names = "GCLK";
-			atmel,assigned-clocks = <&gclk 0>;
+			clocks = <&gclk 0x1c>, <&pm MCLK_BUS_APBC 13>;
+			clock-names = "GCLK", "PM";
+			atmel,assigned-clocks = <&gclk_main>;
 			atmel,assigned-clock-names = "GCLK";
 			status = "disabled";
 		};
@@ -122,9 +123,9 @@
 			compatible = "atmel,sam0-tc32";
 			reg = <0x42003800 0x20>;
 			interrupts = <21 0>;
-			clocks = <&gclk 0x1d>, <&pm 0x20 14>;
+			clocks = <&gclk 0x1d>, <&pm MCLK_BUS_APBC 14>;
 			clock-names = "GCLK", "PM";
-			atmel,assigned-clocks = <&gclk 0>;
+			atmel,assigned-clocks = <&gclk_main>;
 			atmel,assigned-clock-names = "GCLK";
 			status = "disabled";
 		};
@@ -133,110 +134,222 @@
 			compatible = "atmel,sam0-tc32";
 			reg = <0x42003c00 0x20>;
 			interrupts = <22 0>;
-			clocks = <&gclk 0x1d>;
-			clock-names = "GCLK";
-			atmel,assigned-clocks = <&gclk 0>;
+			clocks = <&gclk 0x1d>, <&pm MCLK_BUS_APBC 15>;
+			clock-names = "GCLK", "PM";
+			atmel,assigned-clocks = <&gclk_main>;
 			atmel,assigned-clock-names = "GCLK";
 			status = "disabled";
 		};
 	};
 };
 
+&gclk {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	gclk_main: clock@0 {
+		reg = <0>;
+		#clock-cells = <0>;
+		#atmel,assigned-clock-cells = <0>;
+		div-bits = <8>;
+		div-max = <512>;
+
+		source = <GCLK_SRC_DFLL48M>;
+		clock-div = <1>;
+	};
+
+	gclk1: clock@1 {
+		reg = <1>;
+		#clock-cells = <0>;
+		#atmel,assigned-clock-cells = <0>;
+		div-bits = <16>;
+		div-max = <131072>;
+
+		source = <GCLK_SRC_XOSC32K>;
+		clock-div = <1>;
+		standby-active;
+	};
+
+	gclk_wdt: clock@2 {
+		reg = <2>;
+		#clock-cells = <0>;
+		#atmel,assigned-clock-cells = <0>;
+		div-bits = <5>;
+		div-max = <64>;
+
+		source = <GCLK_SRC_OSCULP32K>;
+		clock-div = <16>;
+	};
+
+	gclk_adc: clock@3 {
+		reg = <3>;
+		#clock-cells = <0>;
+		#atmel,assigned-clock-cells = <0>;
+		div-bits = <8>;
+		div-max = <512>;
+
+		source = <GCLK_SRC_DFLL48M>;
+		clock-div = <6>;
+	};
+
+	gclk_rtc: clock@4 {
+		reg = <4>;
+		#clock-cells = <0>;
+		#atmel,assigned-clock-cells = <0>;
+		div-bits = <8>;
+		div-max = <512>;
+
+		source = <GCLK_SRC_XOSC32K>;
+		/* This clock is used by the RTC. In calendar mode, the prescalar
+		 * should be set to 32 to generate the required 1024 Hz clock.
+		 */
+		clock-div = <32>;
+	};
+
+	gclk5: clock@5 {
+		reg = <5>;
+		#clock-cells = <0>;
+		#atmel,assigned-clock-cells = <0>;
+		div-bits = <8>;
+		div-max = <512>;
+
+		status = "disabled";
+	};
+
+	gclk6: clock@6 {
+		reg = <6>;
+		#clock-cells = <0>;
+		#atmel,assigned-clock-cells = <0>;
+		div-bits = <8>;
+		div-max = <512>;
+
+		status = "disabled";
+	};
+
+	gclk7: clock@7 {
+		reg = <7>;
+		#clock-cells = <0>;
+		#atmel,assigned-clock-cells = <0>;
+		div-bits = <8>;
+		div-max = <512>;
+
+		status = "disabled";
+	};
+};
+
+
 &wdog {
-	clocks = <&gclk 0x03>;
-	clock-names = "GCLK";
-	atmel,assigned-clocks = <&gclk 0>;
+	clocks = <&gclk 0x03>, <&pm MCLK_BUS_APBA 6>;
+	clock-names = "GCLK", "PM";
+	atmel,assigned-clocks = <&gclk_wdt>;
 	atmel,assigned-clock-names = "GCLK";
 };
 
 &eic {
-	clocks = <&gclk 0x05>;
-	clock-names = "GCLK";
-	atmel,assigned-clocks = <&gclk 0>;
+	clocks = <&gclk 0x05>, <&pm MCLK_BUS_APBA 6>;
+	clock-names = "GCLK", "PM";
+	atmel,assigned-clocks = <&gclk_main>;
 	atmel,assigned-clock-names = "GCLK";
+};
+
+&nvmctrl {
+	clocks = <&gclk 33>, <&pm MCLK_BUS_AHB 4>, <&pm MCLK_BUS_APBB 2>;
+	clock-names = "GCLK", "master", "PM";
+	atmel,assigned-clocks = <&gclk_main>;
+	atmel,assigned-clock-names = "GCLK";
+};
+
+&pinmux_a {
+	clocks = <&pm MCLK_BUS_APBB 3>;
+	clock-names = "PM";
+};
+
+&pinmux_b {
+	clocks = <&pm MCLK_BUS_APBB 3>;
+	clock-names = "PM";
 };
 
 &dac0 {
 	interrupts = <25 0>;
-	clocks = <&gclk 33>, <&pm 0x20 18>;
+	clocks = <&gclk 33>, <&pm MCLK_BUS_APBC 18>;
 	clock-names = "GCLK", "PM";
-	atmel,assigned-clocks = <&gclk 0>;
+	atmel,assigned-clocks = <&gclk_main>;
 	atmel,assigned-clock-names = "GCLK";
 };
 
 &rtc {
-	clocks = <&gclk 4>, <&pm 0x18 5>;
+	clocks = <&gclk 4>, <&pm MCLK_BUS_APBA 5>;
 	clock-names = "GCLK", "PM";
-	atmel,assigned-clocks = <&gclk 4>;
+	atmel,assigned-clocks = <&gclk_rtc>;
 	atmel,assigned-clock-names = "GCLK";
 };
 
 &sercom0 {
 	interrupts = <9 0>;
-	clocks = <&gclk 0x14>, <&pm 0x20 2>;
+	clocks = <&gclk 0x14>, <&pm MCLK_BUS_APBC 2>;
 	clock-names = "GCLK", "PM";
-	atmel,assigned-clocks = <&gclk 0>;
+	atmel,assigned-clocks = <&gclk_main>;
 	atmel,assigned-clock-names = "GCLK";
 };
 
 &sercom1 {
 	interrupts = <10 0>;
-	clocks = <&gclk 0x15>, <&pm 0x20 3>;
+	clocks = <&gclk 0x15>, <&pm MCLK_BUS_APBC 3>;
 	clock-names = "GCLK", "PM";
-	atmel,assigned-clocks = <&gclk 0>;
+	atmel,assigned-clocks = <&gclk_main>;
 	atmel,assigned-clock-names = "GCLK";
 };
 
 &sercom2 {
 	interrupts = <11 0>;
-	clocks = <&gclk 0x16>, <&pm 0x20 4>;
+	clocks = <&gclk 0x16>, <&pm MCLK_BUS_APBC 4>;
 	clock-names = "GCLK", "PM";
-	atmel,assigned-clocks = <&gclk 0>;
+	atmel,assigned-clocks = <&gclk_main>;
 	atmel,assigned-clock-names = "GCLK";
 };
 
 &sercom3 {
 	interrupts = <12 0>;
-	clocks = <&gclk 0x17>, <&pm 0x20 5>;
+	clocks = <&gclk 0x17>, <&pm MCLK_BUS_APBC 5>;
 	clock-names = "GCLK", "PM";
-	atmel,assigned-clocks = <&gclk 0>;
+	atmel,assigned-clocks = <&gclk_main>;
 	atmel,assigned-clock-names = "GCLK";
 };
 
 &sercom4 {
 	interrupts = <13 0>;
-	clocks = <&gclk 0x18>, <&pm 0x20 6>;
+	clocks = <&gclk 0x18>, <&pm MCLK_BUS_APBC 6>;
 	clock-names = "GCLK", "PM";
-	atmel,assigned-clocks = <&gclk 0>;
+	atmel,assigned-clocks = <&gclk_main>;
 	atmel,assigned-clock-names = "GCLK";
 };
 
 &sercom5 {
 	interrupts = <14 0>;
-	clocks = <&gclk 0x19>, <&pm 0x20 7>;
+	clocks = <&gclk 0x19>, <&pm MCLK_BUS_APBC 7>;
 	clock-names = "GCLK", "PM";
-	atmel,assigned-clocks = <&gclk 0>;
+	atmel,assigned-clocks = <&gclk_main>;
 	atmel,assigned-clock-names = "GCLK";
 };
 
 &tc4 {
 	interrupts = <19 0>;
-	clocks = <&gclk 0x1c>, <&pm 0x20 12>;
+	clocks = <&gclk 0x1c>, <&pm MCLK_BUS_APBC 12>;
 	clock-names = "GCLK", "PM";
-	atmel,assigned-clocks = <&gclk 0>;
+	atmel,assigned-clocks = <&gclk_main>;
 	atmel,assigned-clock-names = "GCLK";
 };
 
 &adc {
 	interrupts = <23 0>;
 	interrupt-names = "resrdy";
-	clocks = <&gclk 0x1e>, <&pm 0x20 16>;
+	clocks = <&gclk 0x1e>, <&pm MCLK_BUS_APBC 16>;
 	clock-names = "GCLK", "PM";
 	/*
 	 * 2.1 MHz is ADC max clock
 	 * 8 MHz GCLK / 4 = 2 MHz
 	 * Generator 3: DFLL48M / 8MHz
 	 */
-	atmel,assigned-clocks = <&gclk 3>;
+	atmel,assigned-clocks = <&gclk_adc>;
 	atmel,assigned-clock-names = "GCLK";
 };

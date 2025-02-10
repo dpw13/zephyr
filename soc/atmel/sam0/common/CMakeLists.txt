@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 zephyr_sources(soc_port.c)
+zephyr_sources_ifdef(CONFIG_PM soc_power.c)
 
 zephyr_sources_ifdef(CONFIG_BOOTLOADER_BOSSA bossa.c)
 

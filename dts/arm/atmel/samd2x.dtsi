@@ -11,6 +11,8 @@
 #include <zephyr/dt-bindings/gpio/gpio.h>
 #include <zephyr/dt-bindings/i2c/i2c.h>
 #include <zephyr/dt-bindings/pwm/pwm.h>
+#include <zephyr/dt-bindings/clock/atmel_sam0_mclk.h>
+#include <zephyr/dt-bindings/clock/atmel_sam0_gclk.h>
 
 / {
 	aliases {
@@ -44,8 +46,51 @@
 		cpu0: cpu@0 {
 			compatible = "arm,cortex-m0+";
 			reg = <0>;
+			cpu-power-states = <&idle0 &idle1 &idle2 &standby>;
 
 			device_type = "cpu";
+		};
+
+		power-states {
+			idle0: idle0 {
+				compatible = "zephyr,power-state";
+				power-state-name = "runtime-idle";
+				zephyr,pm-device-disabled;
+				/* The datasheet only specs typical numbers, so use those */
+				min-residency-us = <100>;
+				exit-latency-us = <4>;
+
+				status = "disabled";
+			};
+
+			idle1: idle1 {
+				compatible = "zephyr,power-state";
+				power-state-name = "suspend-to-idle";
+				substate-id = <0>;
+				min-residency-us = <1000>;
+				exit-latency-us = <14>;
+
+				status = "disabled";
+			};
+
+			idle2: idle2 {
+				compatible = "zephyr,power-state";
+				power-state-name = "suspend-to-idle";
+				substate-id = <1>;
+				min-residency-us = <2000>;
+				exit-latency-us = <15>;
+
+				status = "disabled";
+			};
+
+			standby: standby {
+				compatible = "zephyr,power-state";
+				power-state-name = "standby";
+				min-residency-us = <10000>;
+				exit-latency-us = <20>;
+
+				status = "disabled";
+			};
 		};
 	};
 
@@ -191,7 +236,7 @@
 			compatible = "atmel,sam0-rtc";
 			reg = <0x40001400 0x1C>;
 			interrupts = <3 0>;
-			clocks = <&gclk 4 4>, <&pm 0x18 5>;
+			clocks = <&gclk 4>, <&pm MCLK_BUS_APBA 5>;
 			clock-names = "GCLK", "PM";
 			status = "disabled";
 

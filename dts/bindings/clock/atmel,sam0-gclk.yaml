@@ -29,8 +29,8 @@ properties:
             ID:  2 (Generator 2)
 
         Then to enable the clock to the peripheral
-        Generator:     2
-        Identificator: 4 (GCLK_RTC)
+        Generator:  2
+        Identifier: 4 (GCLK_RTC)
 
           &rtc {
             /* The peripheral is fixed and it is defined at soc devictree
@@ -64,3 +64,43 @@ clock-cells:
 
 atmel,assigned-clock-cells:
   - gen
+
+child-binding:
+  description: SAMD0 Clock Nodes
+  properties:
+    reg:
+      type: int
+      required: true
+
+    source:
+      required: true
+      type: int
+      description: |
+        - The GCLK source for this clock instance.
+
+    clock-div:
+      required: true
+      type: int
+      description: |
+        - The clock divider for this clock instance.
+
+    div-bits:
+      required: true
+      type: int
+      description: |
+        - The number of bits in GENDIV.DIV for this gclk.
+
+    div-max:
+      required: true
+      type: int
+      description: |
+        - The maximum clock divider for this gclk.
+
+    standby-active:
+      type: boolean
+      description: |
+        - Clock should remain enabled in standby.
+
+    "#clock-cells":
+      type: int
+      const: 0

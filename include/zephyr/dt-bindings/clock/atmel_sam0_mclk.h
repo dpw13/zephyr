@@ -1,0 +1,15 @@
+/*
+ * Copyright (c)
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef ZEPHYR_INCLUDE_DT_BINDINGS_CLOCK_ATMEL_SAM0_MCLK_H_
+#define ZEPHYR_INCLUDE_DT_BINDINGS_CLOCK_ATMEL_SAM0_MCLK_H_
+
+#define MCLK_BUS_AHB		0x14
+#define MCLK_BUS_APBA		0x18
+#define MCLK_BUS_APBB	        0x1c
+#define MCLK_BUS_APBC		0x20
+
+#endif /* ZEPHYR_INCLUDE_DT_BINDINGS_CLOCK_ATMEL_SAM0_MCLK_H_ */

@@ -1,0 +1,9 @@
+# Copyright (c)
+# SPDX-License-Identifier: Apache-2.0
+
+config CLOCK_CONTROL_SAM0
+	bool "Atmel SAM0 clock control"
+	default y
+	depends on DT_HAS_ATMEL_SAM0_GCLK_ENABLED
+	help
+	  Enable driver for Atmel SAM0 Clock Control.
