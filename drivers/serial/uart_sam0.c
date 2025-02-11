@@ -12,11 +12,15 @@
 #include <zephyr/init.h>
 #include <zephyr/sys/__assert.h>
 #include <soc.h>
+#include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/dma.h>
 #include <zephyr/drivers/pinctrl.h>
+#include <zephyr/logging/log.h>
 #include <string.h>
 #include <zephyr/irq.h>
+
+LOG_MODULE_REGISTER(sam0_uart, CONFIG_UART_LOG_LEVEL);
 
 /* clang-format off */
 
@@ -54,6 +58,7 @@ struct uart_sam0_dev_cfg {
 	uint8_t rx_dma_channel;
 #endif
 	const struct pinctrl_dev_config *pcfg;
+	const struct device *core_clk;
 };
 
 /* Device run time data */
@@ -476,8 +481,15 @@ static int uart_sam0_configure(const struct device *dev,
 	usart->CTRLB = CTRLB_temp;
 	wait_synchronization(usart);
 
+	uint32_t freq;
+	if (clock_control_get_rate(cfg->core_clk, (clock_control_subsys_t)(cfg->gclk_gen+1), &freq) < 0) {
+		LOG_ERR("Could not get core clock frequency");
+		freq = SOC_ATMEL_SAM0_GCLK0_FREQ_HZ;
+	}
+
+	LOG_DBG("Core clock %s.%d: %d Hz", cfg->core_clk->name, cfg->gclk_gen, freq);
 	retval = uart_sam0_set_baudrate(usart, new_cfg->baudrate,
-					SOC_ATMEL_SAM0_GCLK0_FREQ_HZ);
+					freq);
 	if (retval != 0) {
 		return retval;
 	}
@@ -554,8 +566,15 @@ static int uart_sam0_init(const struct device *dev)
 			   SERCOM_USART_CTRLB_RXEN | SERCOM_USART_CTRLB_TXEN;
 	wait_synchronization(usart);
 
+	uint32_t freq;
+	if (clock_control_get_rate(cfg->core_clk, (clock_control_subsys_t)(cfg->gclk_gen+1), &freq) < 0) {
+		LOG_ERR("Could not get core clock frequency");
+		freq = SOC_ATMEL_SAM0_GCLK0_FREQ_HZ;
+	}
+
+	LOG_DBG("Core clock %s.%d: %d Hz", cfg->core_clk->name, cfg->gclk_gen, freq);
 	retval = uart_sam0_set_baudrate(usart, cfg->baudrate,
-					SOC_ATMEL_SAM0_GCLK0_FREQ_HZ);
+			freq);
 	if (retval != 0) {
 		return retval;
 	}
@@ -1281,6 +1300,7 @@ static const struct uart_sam0_dev_cfg uart_sam0_config_##n = {		\
 	.pads = UART_SAM0_SERCOM_PADS(n),				\
 	.collision_detect = UART_SAM0_SERCOM_COLLISION_DETECT(n),	\
 	.pcfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),			\
+	.core_clk = DEVICE_DT_GET(DT_PARENT(ATMEL_SAM0_DT_INST_ASSIGNED_CLOCKS_CTLR_BY_NAME(n, gclk))),			\
 	UART_SAM0_IRQ_HANDLER_FUNC(n)					\
 	UART_SAM0_DMA_CHANNELS(n)					\
 }
