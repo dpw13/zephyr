@@ -59,8 +59,6 @@
 				/* The datasheet only specs typical numbers, so use those */
 				min-residency-us = <100>;
 				exit-latency-us = <4>;
-
-				status = "disabled";
 			};
 
 			idle1: idle1 {
