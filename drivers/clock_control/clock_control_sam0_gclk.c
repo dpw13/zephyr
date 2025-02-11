@@ -15,6 +15,7 @@ LOG_MODULE_REGISTER(clock_control, CONFIG_CLOCK_CONTROL_LOG_LEVEL);
 
 struct sam0_gclk_clock_config {
 	uint32_t div_max;
+	uint16_t dep_count;
 	uint8_t div_bits;
 };
 
@@ -39,6 +40,8 @@ static inline void sam0_gclk_wait_for_ready(void) {
 	}
 }
 
+#define DRYRUN	0
+
 static void sam0_gclk_apply(uint8_t gclk, const struct sam0_gclk_clock_config *cfg, struct sam0_gclk_clock_data *data)
 {
 	uint32_t flags = data->standby_active ? GCLK_GENCTRL_RUNSTDBY : 0;
@@ -54,14 +57,16 @@ static void sam0_gclk_apply(uint8_t gclk, const struct sam0_gclk_clock_config *c
 	if (!data->enabled) {
 		LOG_DBG("GCLK %d disabled", gclk);
 
+#if !DRYRUN
 		/* Write control with enable bit cleared */
 		GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(gclk);
 
 		sam0_gclk_wait_for_ready();
+#endif
 
 		return;
 	}
-	
+
 	if (data->div < (1 << cfg->div_bits)) {
 		div = data->div;
 	} else {
@@ -69,19 +74,23 @@ static void sam0_gclk_apply(uint8_t gclk, const struct sam0_gclk_clock_config *c
 		flags |= GCLK_GENCTRL_DIVSEL;
 	}
 
-	LOG_DBG("GCLK %d enabled source %d divider %d flags %08x", gclk, data->src, div, flags);
-	
-	GCLK->GENDIV.reg = GCLK_GENDIV_ID(gclk)
+	uint32_t gendiv = GCLK_GENDIV_ID(gclk)
 			 | GCLK_GENDIV_DIV(div);
+	uint32_t genctrl = GCLK_GENCTRL_ID(gclk)
+			| GCLK_GENCTRL_GENEN
+			| ((uint32_t)data->src << GCLK_GENCTRL_SRC_Pos)
+			| flags;
 
+	LOG_DBG("GCLK %d enabled GENDIV %08x GENCTRL %08x", gclk, gendiv, genctrl);
+
+#if !DRYRUN
+	GCLK->GENDIV.reg = gendiv;
 	sam0_gclk_wait_for_ready();
 
-	GCLK->GENCTRL.reg = GCLK_GENCTRL_ID(gclk)
-			  | GCLK_GENCTRL_GENEN
-			  | ((uint32_t)data->src << GCLK_GENCTRL_SRC_Pos)
-			  | flags;
+	GCLK->GENCTRL.reg = genctrl;
 
 	sam0_gclk_wait_for_ready();
+#endif
 }
 
 static int sam0_gclk_inst_on(const struct device *dev,
@@ -89,8 +98,10 @@ static int sam0_gclk_inst_on(const struct device *dev,
 {
 	const struct sam0_gclk_config *cfg = dev->config;
 	struct sam0_gclk_data *data = dev->data;
-	struct sam0_gclk_clock_data *gclk = sys;
-	int idx = gclk - &data->gclk[0];
+	int idx = (int)sys - 1;
+	struct sam0_gclk_clock_data *gclk = &data->gclk[idx];
+
+	__ASSERT(idx >= 0 && idx < GCLK_GEN_NUM, "Invalid subsys");
 
 	gclk->enabled = 1;
 	sam0_gclk_apply(idx, &cfg->gclk[idx], gclk);
@@ -103,8 +114,10 @@ static int sam0_gclk_inst_off(const struct device *dev,
 {
 	const struct sam0_gclk_config *cfg = dev->config;
 	struct sam0_gclk_data *data = dev->data;
-	struct sam0_gclk_clock_data *gclk = sys;
-	int idx = gclk - &data->gclk[0];
+	int idx = (int)sys - 1;
+	struct sam0_gclk_clock_data *gclk = &data->gclk[idx];
+
+	__ASSERT(idx >= 0 && idx < GCLK_GEN_NUM, "Invalid subsys");
 
 	gclk->enabled = 0;
 	sam0_gclk_apply(idx, &cfg->gclk[idx], gclk);
@@ -115,9 +128,13 @@ static int sam0_gclk_inst_off(const struct device *dev,
 static enum clock_control_status sam0_gclk_inst_get_status(const struct device *dev,
 							   clock_control_subsys_t sys)
 {
-	const struct sam0_gclk_clock_data *data = sys;
+	struct sam0_gclk_data *data = dev->data;
+	int idx = (int)sys - 1;
+	struct sam0_gclk_clock_data *gclk = &data->gclk[idx];
 
-	return data->enabled ? CLOCK_CONTROL_STATUS_ON : CLOCK_CONTROL_STATUS_OFF;
+	__ASSERT(idx >= 0 && idx < GCLK_GEN_NUM, "Invalid subsys");
+
+	return gclk->enabled ? CLOCK_CONTROL_STATUS_ON : CLOCK_CONTROL_STATUS_OFF;
 }
 
 static inline uint32_t sam0_gclk_inst_get_src_rate(uint8_t src)
@@ -153,8 +170,11 @@ static int sam0_gclk_inst_get_rate(const struct device *dev,
 				   clock_control_subsys_t sys,
 				   uint32_t *rate)
 {
-	struct sam0_gclk_clock_data *gclk = sys;
-	ARG_UNUSED(dev);
+	struct sam0_gclk_data *data = dev->data;
+	int idx = (int)sys - 1;
+	struct sam0_gclk_clock_data *gclk = &data->gclk[idx];
+
+	__ASSERT(idx >= 0 && idx < GCLK_GEN_NUM, "Invalid subsys");
 
 	*rate = sam0_gclk_inst_get_src_rate(gclk->src) / gclk->div;
 	return 0;
@@ -172,7 +192,11 @@ static int sam0_gclk_init(const struct device *dev)
 	const struct sam0_gclk_config *cfg = dev->config;
 	struct sam0_gclk_data *data = dev->data;
 
-	for (int i=0; i < GCLK_GEN_NUM; i++) {
+	/* GCLK0 (main CPU clock) and GCLK1 (DPLL reference) are set up
+	 * by soc_samd2x.c, don't touch them here.
+	 */
+	for (int i=2; i < GCLK_GEN_NUM; i++) {
+		data->gclk[i].enabled &= cfg->gclk[i].dep_count > 0;
 		sam0_gclk_apply(i, &cfg->gclk[i], &data->gclk[i]);
 	}
 
@@ -187,10 +211,20 @@ static int sam0_gclk_init(const struct device *dev)
 	.div = DT_PROP_OR(i, clock_div, 0),			\
 }
 
+/*
+ * INST_SUPPORTS_DEP_ORDS_CNT: Counts the number of "elements" in
+ * DT_SUPPORTS_DEP_ORDS(n). There is a comma after each ordinal(inc. the last)
+ * Hence FOR_EACH adds "+1" once too often which has to be subtracted in the end.
+ */
+#define F1(x) 1
+#define INST_SUPPORTS_DEP_ORDS_CNT(n)  \
+	(FOR_EACH(F1, (+), DT_SUPPORTS_DEP_ORDS(n)) - 1)
+
 #define SAM0_GCLK_INST_CONFIG_INIT(i) 				\
 {								\
 	.div_max = DT_PROP(i, div_max),				\
 	.div_bits = DT_PROP(i, div_bits),			\
+	.dep_count = INST_SUPPORTS_DEP_ORDS_CNT(i)		\
 }
 
 #if DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT)
@@ -208,4 +242,4 @@ static struct sam0_gclk_data sam0_gclk_data = {
 #endif
 
 DEVICE_DT_DEFINE(DT_NODELABEL(gclk), &sam0_gclk_init, NULL, &sam0_gclk_data, &sam0_gclk_cfg, PRE_KERNEL_1,
-	CONFIG_KERNEL_INIT_PRIORITY_OBJECTS, NULL);
+	CONFIG_CLOCK_CONTROL_INIT_PRIORITY, &sam0_gclk_inst_api);

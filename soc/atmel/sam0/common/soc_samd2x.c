@@ -223,33 +223,6 @@ static inline void gclk_main_configure(void)
 }
 #endif
 
-#if !CONFIG_ADC_SAM0 || CONFIG_SOC_ATMEL_SAMD_DEFAULT_AS_MAIN
-#define gclk_adc_configure()
-#else
-static inline void gclk_adc_configure(void)
-{
-	gclk_connect(3, GCLK_GENCTRL_SRC_DFLL48M, SOC_ATMEL_SAM0_GCLK3_DIV, 0);
-}
-#endif
-
-#if !CONFIG_RTC_ATMEL_SAM0 || CONFIG_SOC_ATMEL_SAMD_DEFAULT_AS_MAIN
-#define gclk_rtc_configure()
-#else
-static inline void gclk_rtc_configure(void)
-{
-	gclk_connect(4, GCLK_GENCTRL_SRC_XOSC32K, CONFIG_SOC_ATMEL_SAMD_XOSC32K_PRESCALER, 0);
-}
-#endif
-
-#if !CONFIG_WDT_SAM0
-#define gclk_wdt_configure()
-#else
-static inline void gclk_wdt_configure(void)
-{
-	gclk_connect(2, GCLK_GENCTRL_SRC_OSCULP32K, 4, GCLK_GENCTRL_DIVSEL);
-}
-#endif
-
 #if CONFIG_SOC_ATMEL_SAMD_OSC8M || CONFIG_SOC_ATMEL_SAMD_DEFAULT_AS_MAIN
 #define osc8m_disable()
 #else
@@ -268,9 +241,6 @@ void soc_reset_hook(void)
 	dfll48m_init();
 	flash_waitstates_init();
 	gclk_main_configure();
-	gclk_adc_configure();
-	gclk_rtc_configure();
-	gclk_wdt_configure();
 	osc8m_disable();
 }
 
