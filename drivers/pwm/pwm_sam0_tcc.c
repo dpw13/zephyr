@@ -61,7 +61,7 @@ static int pwm_sam0_set_cycles(const struct device *dev, uint32_t channel,
 	const struct pwm_sam0_config *const cfg = dev->config;
 	Tcc *regs = cfg->regs;
 	uint32_t top = 1 << cfg->counter_size;
-	uint32_t invert_mask = 1 << channel;
+	uint32_t invert_mask = 0x10 << channel;
 	bool invert = ((flags & PWM_POLARITY_INVERTED) != 0);
 	bool inverted = ((regs->DRVCTRL.vec.INVEN & invert_mask) != 0);
 
