@@ -269,6 +269,10 @@ int sam0_eic_enable_interrupt(int port, int pin)
 	mask = BIT(line_index);
 	EIC->INTFLAG.reg = mask;
 	EIC->INTENSET.reg = mask;
+#if CONFIG_PM
+	/* Also allow the pin to wake the device out of sleep */
+	EIC->WAKEUP.reg |= mask;
+#endif
 
 	return 0;
 }
@@ -290,6 +294,10 @@ int sam0_eic_disable_interrupt(int port, int pin)
 	mask = BIT(line_index);
 	EIC->INTENCLR.reg = mask;
 	EIC->INTFLAG.reg = mask;
+#if CONFIG_PM
+	/* Clear wakeup enable */
+	EIC->WAKEUP.reg &= ~mask;
+#endif
 
 	return 0;
 }

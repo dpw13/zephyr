@@ -266,7 +266,11 @@ int usb_dc_attach(void)
 	(void)memset(data->descriptors, 0, sizeof(data->descriptors));
 	regs->DESCADD.reg = (uintptr_t)&data->descriptors[0];
 
+#if CONFIG_PM
+	regs->INTENSET.reg = USB_DEVICE_INTENSET_EORST | USB_DEVICE_INTENSET_WAKEUP;
+#else
 	regs->INTENSET.reg = USB_DEVICE_INTENSET_EORST;
+#endif
 
 	/* Connect and enable the interrupt */
 #if DT_INST_IRQ_HAS_CELL(0, irq)

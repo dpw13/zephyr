@@ -59,8 +59,13 @@
 				/* The datasheet only specs typical numbers, so use those */
 				min-residency-us = <100>;
 				exit-latency-us = <4>;
+
+				status = "okay";
 			};
 
+			/* USB interrupts must be configured the wake the device if USB is to
+			 * be used with these modes
+			 */
 			idle1: idle1 {
 				compatible = "zephyr,power-state";
 				power-state-name = "suspend-to-idle";
@@ -68,9 +73,11 @@
 				min-residency-us = <1000>;
 				exit-latency-us = <14>;
 
-				status = "disabled";
+				status = "okay";
 			};
 
+			/* Asynchronous interrupts are supported in idle2 but the EIC must
+			 * allow wakeups for any GPIO inputs. */
 			idle2: idle2 {
 				compatible = "zephyr,power-state";
 				power-state-name = "suspend-to-idle";
@@ -78,9 +85,13 @@
 				min-residency-us = <2000>;
 				exit-latency-us = <15>;
 
-				status = "disabled";
+				status = "okay";
 			};
 
+			/* Standby results in the device not waking up. Might be interrupt sources
+			 * or clocks not returning, or due to devices not being disabled and exceeding
+			 * the low-power regulator mode
+			 */
 			standby: standby {
 				compatible = "zephyr,power-state";
 				power-state-name = "standby";

@@ -177,7 +177,8 @@ static inline void dfll48m_init(void)
 
 	SYSCTRL->DFLLCTRL.reg = SYSCTRL_DFLLCTRL_MODE
 			      | SYSCTRL_DFLLCTRL_QLDIS
-			      | SYSCTRL_DFLLCTRL_RUNSTDBY;
+			      | SYSCTRL_DFLLCTRL_RUNSTDBY
+			      | SYSCTRL_DFLLCTRL_LLAW;
 
 	/* Get calibration values */
 	ccal = (*((uint32_t *)FUSES_DFLL48M_COARSE_CAL_ADDR)
