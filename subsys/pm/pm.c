@@ -204,6 +204,13 @@ bool pm_system_suspend(int32_t kernel_ticks)
 		     k_us_to_ticks_ceil32(
 			     z_cpus_pm_state[id].exit_latency_us),
 				     true);
+	} else {
+		/*
+		 * Inform sysclock we'll be waiting the specified time. This is
+		 * especially needed in sloppy tickless mode to ensure the system
+		 * clock gets disabled if ticks is K_TICKS_FOREVER.
+		 */
+		sys_clock_set_timeout(ticks, true);
 	}
 
 	/*
