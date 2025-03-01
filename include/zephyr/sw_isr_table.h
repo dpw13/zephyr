@@ -39,6 +39,9 @@ void z_irq_spurious(const void *unused);
 struct _isr_table_entry {
 	const void *arg;
 	void (*isr)(const void *);
+#ifdef CONFIG_ISR_TABLE_COUNT
+	uint32_t count;
+#endif
 };
 
 /* The software ISR table itself, an array of these structures indexed by the

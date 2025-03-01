@@ -23,6 +23,13 @@ config ISR_TABLE_SHELL
 	help
 	  This option enables a shell command to dump the ISR tables.
 
+config ISR_TABLE_COUNT
+	bool "Count ISRs"
+	depends on GEN_ISR_TABLES
+	depends on DYNAMIC_INTERRUPTS
+	help
+	  If enabled, this option will add a count to the ISR table and record
+	  the number of times each IRQ fires.
 
 config ARM_MPU
 	bool "ARM MPU Support"

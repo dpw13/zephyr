@@ -74,6 +74,9 @@ void _isr_wrapper(void)
 	irq_number -= 16;
 
 	struct _isr_table_entry *entry = &_sw_isr_table[irq_number];
+#if defined(CONFIG_ISR_TABLE_COUNT)
+	entry->count++;
+#endif
 	(entry->isr)(entry->arg);
 
 #if defined(CONFIG_ARM_CUSTOM_INTERRUPT_CONTROLLER)
