@@ -1251,6 +1251,7 @@ static inline int adc_stream(struct rtio_iodev *iodev, struct rtio *ctx, void *u
 		rtio_sqe_prep_read_multishot(&sqe, iodev, RTIO_PRIO_NORM, userdata);
 		rtio_sqe_copy_in_get_handles(ctx, &sqe, handle, 1);
 	} else {
+		printk("adc_stream: rtio_sqe_acquire\n");
 		struct rtio_sqe *sqe = rtio_sqe_acquire(ctx);
 
 		if (sqe == NULL) {
@@ -1259,9 +1260,12 @@ static inline int adc_stream(struct rtio_iodev *iodev, struct rtio *ctx, void *u
 		if (handle != NULL) {
 			*handle = sqe;
 		}
+		printk("adc_stream: rtio_sqe_prep_read_multishot\n");
 		rtio_sqe_prep_read_multishot(sqe, iodev, RTIO_PRIO_NORM, userdata);
 	}
+	printk("adc_stream: rtio_submit\n");
 	rtio_submit(ctx, 0);
+	printk("adc_stream: done\n");
 	return 0;
 }
 

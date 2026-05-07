@@ -35,6 +35,7 @@ static void rtio_executor_op(struct rtio_iodev_sqe *iodev_sqe, int last_result)
 {
 	const struct rtio_sqe *sqe = &iodev_sqe->sqe;
 
+	LOG_DBG("op: %d", sqe->op);
 	switch (sqe->op) {
 	case RTIO_OP_CALLBACK:
 		sqe->callback.callback(iodev_sqe->r, sqe, last_result, sqe->callback.arg0);
@@ -74,6 +75,7 @@ static inline void rtio_iodev_submit(struct rtio_iodev_sqe *iodev_sqe, int last_
 		return;
 	}
 
+	LOG_DBG("submitting: %p", iodev_sqe->sqe.iodev->api->submit);
 	iodev_sqe->sqe.iodev->api->submit(iodev_sqe);
 }
 
@@ -89,8 +91,10 @@ void rtio_executor_submit(struct rtio *r)
 	const uint16_t cancel_no_response = (RTIO_SQE_CANCELED | RTIO_SQE_NO_RESPONSE);
 	struct mpsc_node *node = mpsc_pop(&r->sq);
 
+	LOG_DBG("r=%p", r);
 	while (node != NULL) {
 		struct rtio_iodev_sqe *iodev_sqe = CONTAINER_OF(node, struct rtio_iodev_sqe, q);
+		LOG_DBG("node %p iodev_sqe %p", node, iodev_sqe);
 
 		/* If this submission was cancelled before submit, then generate no response */
 		if (iodev_sqe->sqe.flags  & RTIO_SQE_CANCELED) {
@@ -102,6 +106,7 @@ void rtio_executor_submit(struct rtio *r)
 
 		/* Link up transaction or queue list if needed */
 		while (curr->sqe.flags & (RTIO_SQE_TRANSACTION | RTIO_SQE_CHAINED)) {
+			LOG_DBG("flags %x", curr->sqe.flags);
 #ifdef CONFIG_ASSERT
 			bool transaction = iodev_sqe->sqe.flags & RTIO_SQE_TRANSACTION;
 			bool chained = iodev_sqe->sqe.flags & RTIO_SQE_CHAINED;
@@ -137,10 +142,14 @@ void rtio_executor_submit(struct rtio *r)
 		curr->next = NULL;
 		curr->r = r;
 
+		LOG_DBG("-> rtio_iodev_submit");
 		rtio_iodev_submit(iodev_sqe, 0);
-
+		LOG_DBG("<- rtio_iodev_submit");
+		
+		LOG_DBG("mpsc_pop");
 		node = mpsc_pop(&r->sq);
 	}
+	LOG_DBG("done");
 }
 
 /**
@@ -179,6 +188,7 @@ static inline void rtio_executor_handle_multishot(struct rtio_iodev_sqe *iodev_s
 		}
 
 		mpsc_push(&r->sq, &iodev_sqe->q);
+		LOG_DBG("rtio_executor_submit");
 		rtio_executor_submit(r);
 	}
 
@@ -249,6 +259,7 @@ static inline void rtio_executor_done(struct rtio_iodev_sqe *iodev_sqe, int resu
  */
 void rtio_executor_ok(struct rtio_iodev_sqe *iodev_sqe, int result)
 {
+	LOG_DBG("ok");
 	rtio_executor_done(iodev_sqe, result, true);
 }
 
@@ -261,5 +272,6 @@ void rtio_executor_ok(struct rtio_iodev_sqe *iodev_sqe, int result)
  */
 void rtio_executor_err(struct rtio_iodev_sqe *iodev_sqe, int result)
 {
+	LOG_DBG("err %d", result);
 	rtio_executor_done(iodev_sqe, result, false);
 }

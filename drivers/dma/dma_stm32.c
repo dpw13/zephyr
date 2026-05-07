@@ -435,10 +435,12 @@ DMA_STM32_EXPORT_API int dma_stm32_configure(const struct device *dev,
 	case PERIPHERAL_TO_MEMORY:
 		memory_addr_adj = config->head_block->dest_addr_adj;
 		periph_addr_adj = config->head_block->source_addr_adj;
+		LOG_DBG("periph to mem, mem adj 0x%x periph adj 0x%x", memory_addr_adj, periph_addr_adj);
 		break;
 	case MEMORY_TO_PERIPHERAL:
 		memory_addr_adj = config->head_block->source_addr_adj;
 		periph_addr_adj = config->head_block->dest_addr_adj;
+		LOG_DBG("mem to periph, mem adj 0x%x periph adj 0x%x", memory_addr_adj, periph_addr_adj);
 		break;
 	/* Direction has been asserted in dma_stm32_get_direction. */
 	default:

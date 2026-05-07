@@ -75,7 +75,6 @@ extern "C" {
  */
 #define COUNTER_TOP_CFG_ENABLE_TRIG  BIT(2)
 
-
 /**@} */
 
 /**

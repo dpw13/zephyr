@@ -48,6 +48,9 @@ LOG_MODULE_REGISTER(opamp_stm32, CONFIG_OPAMP_LOG_LEVEL);
 /* only applicable in standalone mode */
 #define OPAMP_INM_SEC_VINM1 LL_OPAMP_INPUT_INVERT_IO1_SEC
 
+/* The bare DAC value defined LL STM headers can interfere with us using "DAC" */
+#undef DAC
+
 #define OPAMP_INP_VINP0 LL_OPAMP_INPUT_NONINVERT_IO0
 #define OPAMP_INP_VINP1 LL_OPAMP_INPUT_NONINVERT_IO1
 #define OPAMP_INP_VINP2 LL_OPAMP_INPUT_NONINVERT_IO2

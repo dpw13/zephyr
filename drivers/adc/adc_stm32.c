@@ -13,6 +13,7 @@
 
 #include <errno.h>
 
+#include <zephyr/autoconf.h>
 #include <zephyr/drivers/adc.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/device.h>
@@ -372,6 +373,10 @@ static int adc_stm32_dma_start(const struct device *dev,
 	dma->dma_cfg.user_data = data;
 	dma->dma_cfg.cyclic = continuous;
 
+	LOG_DBG("config: %d B from %p to %p",
+		blk_cfg->block_size, (void *)blk_cfg->source_address, (void *)blk_cfg->dest_address);
+
+	LOG_DBG("using DMA %p/%p", dma, dma->dma_dev);
 	ret = dma_config(data->dma.dma_dev, data->dma.channel,
 			 &dma->dma_cfg);
 	if (ret != 0) {
@@ -496,6 +501,7 @@ static void adc_stm32_start_conversion(const struct device *dev)
 #else
 	LL_ADC_REG_StartConversionSWStart(adc);
 #endif
+	LOG_DBG("Start conversion done");
 }
 
 /* If force is true, this function will disable ADC peripheral (forcefully stopping on-going
@@ -932,7 +938,7 @@ static void dma_callback(const struct device *dev, void *user_data,
 	ADC_TypeDef *adc = config->base;
 #endif /* !DT_HAS_COMPAT_STATUS_OKAY(st_stm32f1_adc) */
 
-	//LOG_DBG("dma callback");
+	LOG_DBG("dma callback ch %d status %d", channel, status);
 
 	if (channel == data->dma.channel) {
 #if !DT_HAS_COMPAT_STATUS_OKAY(st_stm32f1_adc)
@@ -1354,7 +1360,10 @@ static int start_read(const struct device *dev,
 
 #ifdef CONFIG_ADC_STREAM
 	data->ctx.asynchronous = true;
-	adc_context_start_sampling(&data->ctx);
+	LOG_DBG("start_sample");
+	// adc_context_start_read copies the options callback, among other things.
+	//adc_context_start_sampling(&data->ctx);
+	adc_context_start_read(&data->ctx, sequence);
 #else /* CONFIG_ADC_STREAM */
 	/* This call will start the DMA */
 	LOG_INF("%s start: CR=%08x CFGR=%08x CFGR2=%08x", dev->name,
@@ -1373,6 +1382,7 @@ static int start_read(const struct device *dev,
 	result = (data->dma_error ? data->dma_error : result);
 #endif
 
+	LOG_DBG("done");
 	return result;
 }
 
@@ -1400,9 +1410,12 @@ static void adc_context_start_sampling(struct adc_context *ctx)
 	/* Make sure DMA bit of ADC register CR2 is set to 0 before starting a DMA transfer */
 	LL_ADC_REG_SetDMATransfer(adc, LL_ADC_REG_DMA_TRANSFER_NONE);
 #endif
+	LOG_DBG("Starting DMA");
 	adc_stm32_dma_start(dev, data->buffer, data->sample_count, data->continuous);
 #endif
+	LOG_DBG("start");
 	adc_stm32_start_conversion(dev);
+	LOG_DBG("done");
 }
 
 static void adc_context_update_buffer_pointer(struct adc_context *ctx,
@@ -1474,13 +1487,14 @@ static void adc_stm32_isr(const struct device *dev)
 		}
 #else /* CONFIG_ADC_STREAM */
 		if (data->samples_count == 0U) {
-			uint8_t *buf;
+			uint8_t *buf = NULL;
 			uint32_t buf_len;
 			const size_t read_size = sizeof(struct adc_stm32_rtio_data) +
 						 data->channel_count * sizeof(adc_data_size_t);
 			struct adc_stm32_rtio_data *hdr;
 
 			if (rtio_sqe_rx_buf(data->sqe, read_size, read_size, &buf, &buf_len) != 0) {
+				LOG_ERR("rtio_sqe_rx_buf returned error, read_size=%d", read_size);
 				rtio_iodev_sqe_err(data->sqe, -ENOMEM);
 				return;
 			}
@@ -2055,9 +2069,13 @@ static int adc_stm32_init(const struct device *dev)
 	adc_stm32_enable_analog_supply();
 
 #ifdef CONFIG_ADC_STM32_DMA
-	if ((data->dma.dma_dev != NULL) &&
-	    !device_is_ready(data->dma.dma_dev)) {
-		LOG_ERR("%s device not ready", data->dma.dma_dev->name);
+	if (data->dma.dma_dev != NULL) {
+		if (!device_is_ready(data->dma.dma_dev)) {
+			LOG_ERR("%s device not ready", data->dma.dma_dev->name);
+			return -ENODEV;
+		}
+	} else {
+		LOG_ERR("ADC needs DMA device");
 		return -ENODEV;
 	}
 #endif
@@ -2192,6 +2210,8 @@ static void adc_stm32_submit_stream(const struct device *dev, struct rtio_iodev_
 	struct adc_stm32_data *data = dev->data;
 	const struct adc_read_config *read_cfg = iodev_sqe->sqe.iodev->data;
 	int rc;
+
+	LOG_DBG("enter");
 
 	data->sqe = iodev_sqe;
 

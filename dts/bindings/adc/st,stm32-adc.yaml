@@ -77,6 +77,10 @@ properties:
       On STM32F3x, this configures only the synchronous prescaler
       (use the "clocks" property to set asynchronous prescaler).
 
+  st,adc-ext-trigger:
+    type: int
+    description: External ADC trigger line.
+
   vref-mv:
     type: int
     default: 3300

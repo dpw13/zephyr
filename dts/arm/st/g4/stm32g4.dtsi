@@ -148,6 +148,16 @@
 			compatible = "st,stm32-dac";
 			reg = <0x50000800 0x400>;
 			clocks = <&rcc STM32_CLOCK(AHB2, 16)>;
+			resets = <&rctl STM32_RESET(AHB2, 16)>;
+			status = "disabled";
+			#io-channel-cells = <1>;
+		};
+
+		dac2: dac@50000c00 {
+			compatible = "st,stm32-dac";
+			reg = <0x50000c00 0x400>;
+			clocks = <&rcc STM32_CLOCK(AHB2, 17)>;
+			resets = <&rctl STM32_RESET(AHB2, 17)>;
 			status = "disabled";
 			#io-channel-cells = <1>;
 		};
@@ -156,6 +166,7 @@
 			compatible = "st,stm32-dac";
 			reg = <0x50001000 0x400>;
 			clocks = <&rcc STM32_CLOCK(AHB2, 18)>;
+			resets = <&rctl STM32_RESET(AHB2, 18)>;
 			status = "disabled";
 			#io-channel-cells = <1>;
 		};

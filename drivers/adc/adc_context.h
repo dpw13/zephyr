@@ -216,6 +216,7 @@ static inline void adc_context_start_read(struct adc_context *ctx,
 	ctx->status = 0;
 
 	if (sequence->options) {
+		//printk("adc_context_start_read: seq options: %p\n", sequence->options);
 		ctx->options = *sequence->options;
 		ctx->sequence.options = &ctx->options;
 		ctx->sampling_index = 0U;
@@ -225,6 +226,8 @@ static inline void adc_context_start_read(struct adc_context *ctx,
 			adc_context_enable_timer(ctx);
 			return;
 		}
+	//} else {
+	//	printk("adc_context_start_read: no seq options\n");
 	}
 
 	adc_context_start_sampling(ctx);
@@ -248,7 +251,9 @@ static inline void adc_context_on_sampling_done(struct adc_context *ctx,
 			action = callback(dev,
 					  &ctx->sequence,
 					  ctx->sampling_index);
+			//printk("adc_context_on_sampling_done: cb %p returned %d\n", callback, action);
 		} else {
+			//printk("adc_context_on_sampling_done: no callback, continue\n");
 			action = ADC_ACTION_CONTINUE;
 		}
 
@@ -290,6 +295,8 @@ static inline void adc_context_on_sampling_done(struct adc_context *ctx,
 		if (ctx->options.interval_us != 0U) {
 			adc_context_disable_timer(ctx);
 		}
+	//} else {
+	//	printk("adc_context_on_sampling_done: no seq options\n");
 	}
 
 	adc_context_complete(ctx, 0);

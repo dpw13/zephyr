@@ -50,6 +50,7 @@ void z_thread_abort(struct k_thread *thread);
 
 static inline void thread_schedule_new(struct k_thread *thread, k_timeout_t delay)
 {
+	printk("thread_schedule_new\n");
 #ifdef CONFIG_SYS_CLOCK_EXISTS
 	if (K_TIMEOUT_EQ(delay, K_NO_WAIT)) {
 		k_thread_start(thread);

@@ -208,6 +208,7 @@ static inline int rtio_block_pool_alloc(struct rtio *r, size_t min_sz,
 	 * that case
 	 */
 	if (block_size == 0) {
+		printk("rtio_block_pool_alloc: block size 0\n");
 		return -ENOMEM;
 	}
 
@@ -226,6 +227,8 @@ static inline int rtio_block_pool_alloc(struct rtio *r, size_t min_sz,
 
 		bytes -= block_size;
 	} while (bytes >= min_sz);
+
+	printk("rtio_block_pool_alloc: no mem available, block size %d-%d still need %d\n", min_sz, block_size, bytes);
 
 	return -ENOMEM;
 #endif
@@ -459,6 +462,7 @@ static inline struct rtio_cqe *rtio_cqe_consume(struct rtio *r)
 	struct rtio_cqe *cqe = NULL;
 
 #ifdef CONFIG_RTIO_CONSUME_SEM
+	printk("rtio_cqe_consume k_sem_take\n");
 	if (k_sem_take(r->consume_sem, K_NO_WAIT) != 0) {
 		SYS_PORT_TRACING_FUNC_EXIT(rtio, cqe_consume, r, NULL);
 		return NULL;
@@ -492,6 +496,7 @@ static inline struct rtio_cqe *rtio_cqe_consume_block(struct rtio *r)
 	struct rtio_cqe *cqe;
 
 #ifdef CONFIG_RTIO_CONSUME_SEM
+	printk("rtio_cqe_consume_block k_sem_take\n");
 	k_sem_take(r->consume_sem, K_FOREVER);
 #endif
 	node = mpsc_pop(&r->cq);
@@ -750,6 +755,7 @@ static inline int rtio_sqe_rx_buf(const struct rtio_iodev_sqe *iodev_sqe, uint32
 
 		if (sqe->rx.buf != NULL) {
 			if (sqe->rx.buf_len < min_buf_len) {
+				printk("sqe->rx.buf_len %d < min_buf_len %d\n", sqe->rx.buf_len, min_buf_len);
 				return -ENOMEM;
 			}
 			*buf = sqe->rx.buf;
@@ -764,6 +770,7 @@ static inline int rtio_sqe_rx_buf(const struct rtio_iodev_sqe *iodev_sqe, uint32
 			return 0;
 		}
 
+		printk("rtio_block_pool alloc returned %d\n", rc);
 		return -ENOMEM;
 	}
 #else
@@ -1009,9 +1016,12 @@ static inline int z_impl_rtio_submit(struct rtio *r, uint32_t wait_count)
 		r->submit_count = wait_count;
 	}
 
+	printk("rtio_executor_submit, wait %d\n", wait_count);
 	rtio_executor_submit(r);
+	printk("rtio_executor_submit done\n");
 
 	if (wait_count > 0) {
+		printk("z_impl_rtio_submit k_sem_take\n");
 		res = k_sem_take(r->submit_sem, K_FOREVER);
 		__ASSERT(res == 0,
 			 "semaphore was reset or timed out while waiting on completions!");
@@ -1021,6 +1031,7 @@ static inline int z_impl_rtio_submit(struct rtio *r, uint32_t wait_count)
 	return res;
 }
 #else
+#error "unexpected"
 static inline int z_impl_rtio_submit(struct rtio *r, uint32_t wait_count)
 {
 

@@ -428,7 +428,7 @@ enum sd_timing_mode {
  * Controls the SD host controller clock speed on the SD bus.
  */
 enum sdhc_clock_speed {
-	SDMMC_CLOCK_400KHZ = KHZ(400),
+	SDMMC_CLOCK_400KHZ = KHZ(750),
 	SD_CLOCK_25MHZ = MHZ(25),
 	SD_CLOCK_50MHZ = MHZ(50),
 	SD_CLOCK_100MHZ = MHZ(100),

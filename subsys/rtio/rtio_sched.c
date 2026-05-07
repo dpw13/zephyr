@@ -23,6 +23,7 @@ static void rtio_sched_alarm_expired(struct _timeout *t)
 	struct rtio_sqe *sqe = CONTAINER_OF(t, struct rtio_sqe, delay.to);
 	struct rtio_iodev_sqe *iodev_sqe = CONTAINER_OF(sqe, struct rtio_iodev_sqe, sqe);
 
+	printk("rtio_sched_alarm_expired\n");
 	rtio_iodev_sqe_ok(iodev_sqe, 0);
 }
 
@@ -31,6 +32,7 @@ void rtio_sched_alarm(struct rtio_iodev_sqe *iodev_sqe, k_timeout_t timeout)
 	struct rtio_sqe *sqe = &iodev_sqe->sqe;
 
 	z_init_timeout(&sqe->delay.to);
+	printk("rtio_sched_alarm\n");
 	z_add_timeout(&sqe->delay.to, rtio_sched_alarm_expired, timeout);
 }
 #endif /* CONFIG_RTIO_OP_DELAY */
