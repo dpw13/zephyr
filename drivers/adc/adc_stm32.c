@@ -248,7 +248,7 @@ struct adc_stm32_data {
 	uint8_t resolution;
 	uint32_t channels;
 	uint8_t channel_count;
-	uint16_t sample_count;
+	uint16_t samples_count;
 	uint16_t current_sample;
 	int8_t acq_time_index[2];
 	bool continuous;
@@ -289,6 +289,7 @@ struct adc_stm32_cfg {
 	const uint8_t *table_raw_resolution;
 	const uint32_t *table_ll_resolution;
 	const uint16_t sampling_time_table[STM32_NB_SAMPLING_TIME];
+	const uint16_t trig_src;
 	int8_t table_resolution_size;
 	int8_t num_sampling_time_common_channels;
 	int8_t sequencer_type;
@@ -322,19 +323,19 @@ static void adc_stm32_enable_dma_support(ADC_TypeDef *adc, bool continuous)
 	/* H72x ADC3 and U5 ADC4 are different from the rest, but this call works also for them,
 	 * so no need to call their specific function
 	 */
-	LL_ADC_REG_SetDataTransferMode(adc, LL_ADC_REG_DMA_TRANSFER_LIMITED);
+	LL_ADC_REG_SetDMATransfer(adc, LL_ADC_REG_DMA_TRANSFER_LIMITED);
 #else
 	/* Default mechanism for other MCUs */
 	if (continuous) {
-		LL_ADC_REG_SetDataTransferMode(adc, LL_ADC_REG_DMA_TRANSFER_UNLIMITED);
+		LL_ADC_REG_SetDMATransfer(adc, LL_ADC_REG_DMA_TRANSFER_UNLIMITED);
 	} else {
-		LL_ADC_REG_SetDataTransferMode(adc, LL_ADC_REG_DMA_TRANSFER_LIMITED);
+		LL_ADC_REG_SetDMATransfer(adc, LL_ADC_REG_DMA_TRANSFER_LIMITED);
 	}
 #endif
 }
 
 static int adc_stm32_dma_start(const struct device *dev,
-			       void *buffer, size_t sample_count, bool continuous)
+			       void *buffer)
 {
 	const struct adc_stm32_cfg *config = dev->config;
 	ADC_TypeDef *adc = config->base;
@@ -347,7 +348,7 @@ static int adc_stm32_dma_start(const struct device *dev,
 	blk_cfg = &dma->dma_blk_cfg;
 
 	/* prepare the block */
-	blk_cfg->block_size = sample_count * sizeof(adc_data_size_t);
+	blk_cfg->block_size = data->samples_count * sizeof(adc_data_size_t);
 
 	/* Source and destination */
 	blk_cfg->source_address = (uint32_t)LL_ADC_DMA_GetRegAddr(adc, LL_ADC_DMA_REG_REGULAR_DATA);
@@ -371,7 +372,7 @@ static int adc_stm32_dma_start(const struct device *dev,
 
 	dma->dma_cfg.head_block = blk_cfg;
 	dma->dma_cfg.user_data = data;
-	dma->dma_cfg.cyclic = continuous;
+	dma->dma_cfg.cyclic = data->continuous;
 
 	LOG_DBG("config: %d B from %p to %p",
 		blk_cfg->block_size, (void *)blk_cfg->source_address, (void *)blk_cfg->dest_address);
@@ -398,7 +399,7 @@ static int adc_stm32_dma_start(const struct device *dev,
 #endif /* CONFIG_ADC_STM32_DMA */
 
 static int check_buffer(const struct adc_sequence *sequence,
-			     uint16_t sample_count)
+			     uint8_t active_channels)
 {
 	size_t needed_buffer_size;
 
@@ -907,7 +908,8 @@ static int adc_stm32_oversampling(const struct device *dev, uint8_t ratio)
 		return -EINVAL;
 	}
 
-	uint32_t shift = table_oversampling_shift[ratio];
+	// HACK: do not shift oversampled data
+	uint32_t shift = 0; //table_oversampling_shift[ratio];
 
 #if ANY_ADC_OVERSAMPLER_TYPE_IS(OVERSAMPLER_MINIMAL)
 	if (config->oversampler_type == OVERSAMPLER_MINIMAL) {
@@ -938,7 +940,7 @@ static void dma_callback(const struct device *dev, void *user_data,
 	ADC_TypeDef *adc = config->base;
 #endif /* !DT_HAS_COMPAT_STATUS_OKAY(st_stm32f1_adc) */
 
-	LOG_DBG("dma callback ch %d status %d", channel, status);
+	LOG_DBG("dma callback ch %d status %d data %p", channel, status, user_data);
 
 	if (channel == data->dma.channel) {
 #if !DT_HAS_COMPAT_STATUS_OKAY(st_stm32f1_adc)
@@ -951,12 +953,12 @@ static void dma_callback(const struct device *dev, void *user_data,
 		if (status >= 0) {
 			if (data->continuous) {
 				/* Half buffer complete in cyclic mode */
-				data->current_sample += data->sample_count/2;
-				data->buffer += data->sample_count/2;
+				data->current_sample += data->samples_count/2;
+				data->buffer += data->samples_count/2;
 			} else {
 				/* Full buffer complete */
-				data->current_sample += data->sample_count;
-				data->buffer += data->sample_count;
+				data->current_sample += data->samples_count;
+				data->buffer += data->samples_count;
 			}
 			LOG_DBG("status %d at %d samples", status, data->current_sample);
 			if (data->continuous) {
@@ -1249,16 +1251,16 @@ static int start_read(const struct device *dev,
 	data->repeat_buffer = sequence->buffer;
 	data->channels = sequence->channels;
 	data->channel_count = POPCOUNT(data->channels);
-	data->samples_count = 0;
 	data->resolution = sequence->resolution;
 	data->current_sample = 0;
 	if (sequence->options) {
-		data->sample_count = data->channel_count * sequence->options->block_size;
+		data->samples_count = data->channel_count * (sequence->options->extra_samplings + 1);
 		data->continuous = sequence->options->continuous;
 	} else {
-		data->sample_count = data->channel_count;
+		data->samples_count = data->channel_count;
 		data->continuous = false;
 	}
+	LOG_DBG("sample count %d, channel count %d", data->samples_count, data->channel_count);
 
 	if (data->channel_count == 0) {
 		LOG_ERR("No channels selected");
@@ -1300,7 +1302,7 @@ static int start_read(const struct device *dev,
 		return err;
 	}
 
-	err = check_buffer(sequence, data->sample_count);
+	err = check_buffer(sequence, data->channel_count);
 	if (err) {
 		LOG_ERR("ADC buffer error");
 		return err;
@@ -1330,6 +1332,14 @@ static int start_read(const struct device *dev,
 		LOG_ERR("Calibration not supported");
 		return -ENOTSUP;
 #endif
+	}
+
+	if (config->trig_src != 0) {
+		/* The LL functions expect the value to be already shifted into position. Instead
+		 * we expect the value specified to be the actual trigger ID, so shift manually.
+		 * Also enable rising edge trigger.
+		 */
+		LL_ADC_REG_SetTriggerSource(adc, (config->trig_src << ADC_CFGR_EXTSEL_Pos) | ADC_REG_TRIG_EXT_EDGE_DEFAULT);
 	}
 
 	/*
@@ -1411,7 +1421,7 @@ static void adc_context_start_sampling(struct adc_context *ctx)
 	LL_ADC_REG_SetDMATransfer(adc, LL_ADC_REG_DMA_TRANSFER_NONE);
 #endif
 	LOG_DBG("Starting DMA");
-	adc_stm32_dma_start(dev, data->buffer, data->sample_count, data->continuous);
+	adc_stm32_dma_start(dev, data->buffer);
 #endif
 	LOG_DBG("start");
 	adc_stm32_start_conversion(dev);
@@ -1810,14 +1820,6 @@ static int adc_stm32_channel_setup(const struct device *dev,
 		goto release;
 	}
 #endif /* ANY_ADC_HAS_CHANNEL_PRESELECTION && CONFIG_ADC_STM32_INJECTED_CHANNELS */
-
-	if (channel_cfg->trig_src != 0) {
-		/* The LL functions expect the value to be already shifted into position. Instead
-		 * we expect the value specified to be the actual trigger ID, so shift manually.
-		 * Also enable rising edge trigger.
-		 */
-		LL_ADC_REG_SetTriggerSource(adc, (channel_cfg->trig_src << ADC_CFGR_EXTSEL_Pos) | ADC_REG_TRIG_EXT_EDGE_DEFAULT);
-	}
 
 	if (channel_cfg->offset != 0) {
 		/* This naive approach overwrites one of the four available offsets and so isn't
@@ -2540,6 +2542,7 @@ DT_INST_FOREACH_STATUS_OKAY(GENERATE_ISR)
 		.table_resolution_size = DT_INST_PROP_LEN(index, st_adc_resolutions),		\
 		.table_raw_resolution = table_raw_resolution##index,				\
 		.table_ll_resolution = table_ll_resolution##index,				\
+		.trig_src         = DT_INST_PROP(index, st_adc_ext_trigger), \
 	};											\
 												\
 	static struct adc_stm32_data adc_stm32_data_##index = {					\

@@ -16,6 +16,7 @@
 #include <zephyr/init.h>
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/dma/dma_stm32.h>
+#include <zephyr/stats/stats.h>
 
 #include <zephyr/logging/log.h>
 #include <zephyr/irq.h>
@@ -631,8 +632,7 @@ DMA_STM32_EXPORT_API int dma_stm32_stop(const struct device *dev, uint32_t id)
 {
 	const struct dma_stm32_config *config = dev->config;
 	DMA_TypeDef *dma = (DMA_TypeDef *)(config->base);
-	struct dma_stm32_stream *stream;
-
+	struct dma_stm32_stream *stream = &config->streams[id - STM32_DMA_STREAM_OFFSET];
 	STATS_INC(stream->stats, stop);
 
 	/* Give channel from index 0 */
