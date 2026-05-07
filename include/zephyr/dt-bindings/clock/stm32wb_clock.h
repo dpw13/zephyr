@@ -9,7 +9,7 @@
 #include "stm32_common_clocks.h"
 
 /** Bus clocks */
-#define STM32_CLOCK_BUS_AHB1    0x048
+#define STM32_CLOCK_BUS_AHB1    0x048   // RCC_AHB1ENR
 #define STM32_CLOCK_BUS_AHB2    0x04c
 #define STM32_CLOCK_BUS_AHB3    0x050
 #define STM32_CLOCK_BUS_APB1    0x058
@@ -25,6 +25,11 @@
 /** System clock */
 /* defined in stm32_common_clocks.h */
 /** Fixed clocks  */
+/* These clock source IDs are only used by the driver and do not directly
+ * relate to any hardware definition. The wb55 currently uses
+ * clock_stm32_ll_common.c, which does have support for the SAI clocks.
+ */
+
 /* Low speed clocks defined in stm32_common_clocks.h */
 #define STM32_SRC_HSI		(STM32_SRC_LSI + 1)
 #define STM32_SRC_HSI48		(STM32_SRC_HSI + 1)
@@ -38,7 +43,10 @@
 #define STM32_SRC_PLL_P		(STM32_SRC_TIMPCLK2 + 1)
 #define STM32_SRC_PLL_Q		(STM32_SRC_PLL_P + 1)
 #define STM32_SRC_PLL_R		(STM32_SRC_PLL_Q + 1)
-/* TODO: PLLSAI clocks */
+/* PLLSAI clocks */
+#define STM32_SRC_PLLSAI_P	(STM32_SRC_PLL_R + 1)
+#define STM32_SRC_PLLSAI_Q	(STM32_SRC_PLLSAI_P + 1)
+#define STM32_SRC_PLLSAI_R	(STM32_SRC_PLLSAI_Q + 1)
 
 /** @brief RCC_CCIPR register offset */
 #define CCIPR_REG		0x88
