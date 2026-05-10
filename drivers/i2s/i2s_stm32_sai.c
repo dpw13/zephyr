@@ -436,7 +436,7 @@ static int i2s_stm32_sai_initialize(const struct device *dev)
 	/* Configure DT provided pins */
 	ret = pinctrl_apply_state(cfg->pcfg, PINCTRL_STATE_DEFAULT);
 	if (ret < 0) {
-		LOG_ERR("I2S pinctrl setup: <FAILED>");
+		LOG_ERR("I2S pinctrl setup: %d", ret);
 		return ret;
 	}
 
@@ -448,14 +448,14 @@ static int i2s_stm32_sai_initialize(const struct device *dev)
 	ret = k_msgq_alloc_init(&dev_data->stream.queue, sizeof(struct queue_item),
 				CONFIG_I2S_STM32_SAI_BLOCK_COUNT);
 	if (ret < 0) {
-		LOG_ERR("k_msgq_alloc_init(): <FAILED>");
+		LOG_ERR("k_msgq_alloc_init(): %d", ret);
 		return ret;
 	}
 
 	/* Initialize DMA */
 	ret = i2s_stm32_sai_dma_init(dev);
 	if (ret < 0) {
-		LOG_ERR("i2s_stm32_sai_dma_init(): <FAILED>");
+		LOG_ERR("i2s_stm32_sai_dma_init(): %d", ret);
 		return ret;
 	}
 
@@ -707,6 +707,12 @@ static int i2s_stm32_sai_configure(const struct device *dev, enum i2s_dir dir,
 		break;
 	case I2S_FMT_DATA_FORMAT_RIGHT_JUSTIFIED:
 		protocol = SAI_I2S_LSBJUSTIFIED;
+		break;
+	case I2S_FMT_DATA_FORMAT_SPDIF:
+		protocol = SAI_SPDIF_PROTOCOL;
+		break;
+	case I2S_FMT_DATA_FORMAT_AC97:
+		protocol = SAI_AC97_PROTOCOL;
 		break;
 	default:
 		LOG_ERR("Unsupported I2S data format");

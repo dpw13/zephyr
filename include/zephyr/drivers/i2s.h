@@ -145,6 +145,9 @@ typedef uint8_t i2s_fmt_t;
  */
 #define I2S_FMT_DATA_FORMAT_RIGHT_JUSTIFIED (4 << I2S_FMT_DATA_FORMAT_SHIFT)
 
+#define I2S_FMT_DATA_FORMAT_SPDIF           (5 << I2S_FMT_DATA_FORMAT_SHIFT)
+#define I2S_FMT_DATA_FORMAT_AC97            (6 << I2S_FMT_DATA_FORMAT_SHIFT)
+
 /** Send MSB first */
 #define I2S_FMT_DATA_ORDER_MSB              (0 << 3)
 /** Send LSB first */
