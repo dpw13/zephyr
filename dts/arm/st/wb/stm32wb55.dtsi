@@ -16,7 +16,7 @@
 			#size-cells = <0>;
 			reg = <0x40015404 0x20>; // verified
 			clocks = <&rcc STM32_CLOCK(APB2, 21)>, // verified
-				 <&rcc STM32_SRC_PLLSAI_P SAI1_SEL(0)>; // new STM32_SRC_PLLSAI_P
+				 <&rcc STM32_SRC_PLLSAI1_P SAI1_SEL(0)>; // new STM32_SRC_PLLSAI_P
 			dmas = <&dmamux1 1 18 (STM32_DMA_MODE_NORMAL | STM32_DMA_PRIORITY_HIGH |
 					      STM32_DMA_16BITS)>; // ch17 of dmamux verified, check cell 1
 			status = "disabled";
@@ -28,7 +28,7 @@
 			#size-cells = <0>;
 			reg = <0x40015424 0x20>;
 			clocks = <&rcc STM32_CLOCK(APB2, 21)>,
-				 <&rcc STM32_SRC_PLLSAI_P SAI1_SEL(0)>;
+				 <&rcc STM32_SRC_PLLSAI1_P SAI1_SEL(0)>;
 			dmas = <&dmamux1 0 19 (STM32_DMA_MODE_NORMAL | STM32_DMA_PRIORITY_HIGH |
 					      STM32_DMA_16BITS)>;
 			dma-names = "rx";
